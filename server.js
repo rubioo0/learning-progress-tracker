@@ -12,11 +12,36 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 app.use(express.json());
 
-// Configure multer for file uploads
-const upload = multer({ dest: 'uploads/' });
+// Health check endpoint for deployment platforms
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./learning_progress.db');
+// Configure multer for file uploads
+const uploadsDir = './uploads';
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+const upload = multer({ dest: uploadsDir });
+
+// Initialize SQLite database with better error handling
+const dbPath = process.env.NODE_ENV === 'production' ? './data/learning_progress.db' : './learning_progress.db';
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error opening database:', err.message);
+    } else {
+        console.log('Connected to SQLite database at:', dbPath);
+    }
+});
 
 // Create tables
 db.serialize(() => {
@@ -589,6 +614,37 @@ function checkAchievements() {
     });
 }
 
-app.listen(PORT, () => {
-    console.log(`Learning Progress Tracker running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Learning Progress Tracker running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Database path: ${dbPath}`);
+    console.log('Server started successfully!');
+}).on('error', (err) => {
+    console.error('Server failed to start:', err);
+    process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+    console.log('Shutting down gracefully...');
+    db.close((err) => {
+        if (err) {
+            console.error('Error closing database:', err.message);
+        } else {
+            console.log('Database connection closed.');
+        }
+        process.exit(0);
+    });
+});
+
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down gracefully...');
+    db.close((err) => {
+        if (err) {
+            console.error('Error closing database:', err.message);
+        } else {
+            console.log('Database connection closed.');
+        }
+        process.exit(0);
+    });
 });
