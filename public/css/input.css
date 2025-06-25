@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the learning tracker */
+.achievement-popup {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.topic-card {
+    transition: all 0.2s ease;
+}
+
+.topic-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.topic-details {
+    transition: all 0.3s ease-in-out;
+}
+
+.topic-chevron {
+    transition: transform 0.2s ease;
+}
+
+.status-not-started {
+    border-left: 4px solid #9CA3AF;
+}
+
+.status-in-progress {
+    border-left: 4px solid #F59E0B;
+}
+
+.status-completed {
+    border-left: 4px solid #10B981;
+}

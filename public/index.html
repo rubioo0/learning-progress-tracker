@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="        .topic-card {
+            transition: all 0.2s ease;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .topic-details {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .topic-chevron {
+            transition: transform 0.2s ease;
+        }
+        
+        .status-not-started {
+            border-left: 4px solid #9CA3AF;
+        }
+        
+        .status-in-progress {
+            border-left: 4px solid #F59E0B;
+        }
+        
+        .status-completed {
+            border-left: 4px solid #10B981;
+        }ead>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Progress Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .status-not-started { 
+            background-color: #f3f4f6; 
+            border-color: #d1d5db; 
+            color: #374151; 
+        }
+        .status-in-progress { 
+            background-color: #fef3c7; 
+            border-color: #fcd34d; 
+            color: #92400e; 
+        }
+        .status-completed { 
+            background-color: #d1fae5; 
+            border-color: #86efac; 
+            color: #065f46; 
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .topic-card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .achievement-popup {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="book-open" class="w-8 h-8 text-blue-600"></i>
+                    <h1 class="text-2xl font-bold text-gray-900">Learning Progress Tracker</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
+                        <i data-lucide="zap" class="w-5 h-5 text-blue-600"></i>
+                        <span class="font-semibold text-blue-700" id="points-display">0 Points</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-purple-50 px-3 py-2 rounded-lg">
+                        <i data-lucide="star" class="w-5 h-5 text-purple-600"></i>
+                        <span class="font-semibold text-purple-700" id="level-display">Level 1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Progress Dashboard -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Progress</h2>
+            
+            <!-- Progress Bar -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">Overall Completion</span>
+                    <span class="text-sm font-medium text-gray-700" id="progress-percentage">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full progress-bar" 
+                         style="width: 0%" id="progress-bar"></div>
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900" id="total-topics">0</div>
+                    <div class="text-sm text-gray-600">Total Topics</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600" id="completed-topics">0</div>
+                    <div class="text-sm text-gray-600">Completed</div>
+                </div>
+                <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="in-progress-topics">0</div>
+                    <div class="text-sm text-gray-600">In Progress</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-600" id="not-started-topics">0</div>
+                    <div class="text-sm text-gray-600">Not Started</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Manage Your Curriculum</h3>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <button onclick="loadSampleData()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i data-lucide="database" class="w-4 h-4 inline mr-2"></i>
+                    Load Sample Curriculum
+                </button>
+                <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer">
+                    <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
+                    Import Excel File
+                    <input type="file" id="excel-upload" accept=".xlsx,.xls" class="hidden" onchange="handleExcelUpload()">
+                </label>
+                <button onclick="previewExcel()" id="preview-btn" 
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors hidden">
+                    <i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>
+                    Preview Excel Structure
+                </button>
+                <button onclick="clearCurriculum()" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4 inline mr-2"></i>
+                    Clear All Data
+                </button>
+                <button onclick="toggleView()" id="view-toggle" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i data-lucide="grid" class="w-4 h-4 inline mr-2"></i>
+                    Switch to Grid View
+                </button>
+            </div>
+            
+            <!-- Excel Import Guidelines for User's Format -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-medium text-blue-900 mb-2">Your Excel File Format</h4>
+                <p class="text-sm text-blue-700 mb-2">The system expects this specific structure for each sheet:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div class="bg-blue-100 rounded px-3 py-2">
+                        <strong>Cell A1:</strong> Level (e.g., "Junior Test Automation Engineer")
+                    </div>
+                    <div class="bg-blue-100 rounded px-3 py-2">
+                        <strong>Cell B1:</strong> Task Name (e.g., "Perform/Execute tests...")
+                    </div>
+                    <div class="bg-blue-100 rounded px-3 py-2">
+                        <strong>Column C:</strong> Labels (Descriptions, ARTIFACTS, NEBo Tasks, Outcomes, Learning Resources)
+                    </div>
+                    <div class="bg-blue-100 rounded px-3 py-2">
+                        <strong>Column D:</strong> Values corresponding to Column C labels
+                    </div>
+                </div>
+                <p class="text-xs text-blue-600 mt-2">The system will process all 16 sheets automatically and combine the C/D column data into comprehensive descriptions.</p>
+            </div>
+        </div>
+
+        <!-- Topics Container -->
+        <div id="topics-container">
+            <!-- Topics will be loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="text-center py-12 hidden">
+            <i data-lucide="book-open" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Topics Yet</h3>
+            <p class="text-gray-600 mb-6">Get started by loading sample data or importing your Excel file.</p>
+            <button onclick="loadSampleData()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                Load Sample Curriculum
+            </button>
+        </div>
+    </main>
+
+    <!-- Achievement Popup -->
+    <div id="achievement-popup" class="fixed top-4 right-4 bg-white border-l-4 border-yellow-400 rounded-lg shadow-lg p-4 max-w-sm hidden achievement-popup">
+        <div class="flex items-start">
+            <i data-lucide="trophy" class="w-6 h-6 text-yellow-500 mt-0.5 mr-3"></i>
+            <div>
+                <h4 class="font-semibold text-gray-900" id="achievement-title">Achievement Unlocked!</h4>
+                <p class="text-sm text-gray-600" id="achievement-description">You've earned a new achievement!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel Preview Modal -->
+    <div id="excel-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Excel File Preview</h3>
+                <button onclick="closeExcelPreview()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div id="excel-preview-content">
+                <!-- Preview content will be loaded here -->
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="proceedWithImport()" 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors">
+                    Import Data
+                </button>
+                <button onclick="closeExcelPreview()" 
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Detail Modal -->
+    <div id="topic-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Topic Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="modal-status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option value="not-started">Not Started</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea id="modal-notes" rows="4" 
+                              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                              placeholder="Add your notes, reflections, or resources..."></textarea>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button onclick="saveTopicChanges()" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors">
+                        Save Changes
+                    </button>
+                    <button onclick="closeModal()" 
+                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTopics = [];
+        let currentTopicId = null;
+        let isGridView = false;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            loadTopics();
+            loadProgress();
+        });
+
+        // Load topics from server
+        async function loadTopics() {
+            try {
+                const response = await fetch('/api/topics');
+                const topics = await response.json();
+                currentTopics = topics;
+                
+                if (topics.length === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    document.getElementById('topics-container').innerHTML = '';
+                } else {
+                    document.getElementById('empty-state').classList.add('hidden');
+                    renderTopics(topics);
+                }
+            } catch (error) {
+                console.error('Error loading topics:', error);
+            }
+        }
+
+        // Render topics in the current view
+        function renderTopics(topics) {
+            const container = document.getElementById('topics-container');
+            
+            if (isGridView) {
+                renderGridView(topics, container);
+            } else {
+                renderModuleView(topics, container);
+            }
+            
+            lucide.createIcons();
+        }
+
+        // Render topics grouped by modules
+        function renderModuleView(topics, container) {
+            const moduleGroups = groupTopicsByModule(topics);
+            
+            container.innerHTML = Object.keys(moduleGroups).map(module => {
+                const moduleTopics = moduleGroups[module];
+                const completedCount = moduleTopics.filter(t => t.status === 'completed').length;
+                const totalCount = moduleTopics.length;
+                const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border mb-6">
+                        <div class="p-6 border-b bg-gray-50">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-xl font-bold text-gray-800 uppercase tracking-wide">${module}</h3>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-sm text-gray-600 font-medium">${completedCount}/${totalCount} completed</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                ${moduleTopics.map(topic => renderStructuredTopic(topic)).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Function to render a topic with structured description display
+        function renderStructuredTopic(topic) {
+            const parsedContent = parseTopicDescription(topic.description);
+            const topicId = `topic-${topic.id}`;
+            
+            return `
+                <div class="topic-card border rounded-lg overflow-hidden bg-gray-50" data-topic-id="${topic.id}">
+                    <div class="flex items-center justify-between p-4 bg-white border-b cursor-pointer" onclick="toggleTopicDetails('${topicId}')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-6 h-6 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
+                                <i data-lucide="${getStatusIconName(topic.status)}" class="w-4 h-4"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">${topic.title}</h4>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
+                                ${getStatusText(topic.status)}
+                            </span>
+                            <button onclick="event.stopPropagation(); openTopicModal(${topic.id})" 
+                                    class="text-gray-400 hover:text-gray-600 p-1">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transform transition-transform topic-chevron"></i>
+                        </div>
+                    </div>
+                    
+                    <div id="${topicId}" class="topic-details hidden p-4 space-y-4">
+                        ${parsedContent.descriptions.length > 0 ? `
+                            <div>
+                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">DESCRIPTION</h5>
+                                <ul class="space-y-1 text-sm text-gray-600">
+                                    ${parsedContent.descriptions.map(desc => `<li class="flex items-start"><span class="mr-2">•</span><span>${desc}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${parsedContent.artifacts.length > 0 ? `
+                            <div>
+                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">ARTIFACTS</h5>
+                                <ul class="space-y-1 text-sm text-gray-600">
+                                    ${parsedContent.artifacts.map(artifact => `<li class="flex items-start"><span class="mr-2">•</span><span>${artifact}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${parsedContent.other.length > 0 ? `
+                            <div>
+                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">ADDITIONAL INFO</h5>
+                                <ul class="space-y-1 text-sm text-gray-600">
+                                    ${parsedContent.other.map(info => `<li class="flex items-start"><span class="mr-2">•</span><span>${info}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${topic.notes ? `
+                            <div>
+                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">NOTES</h5>
+                                <p class="text-sm text-gray-600">${topic.notes}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Function to parse topic description into structured content
+        function parseTopicDescription(description) {
+            if (!description) return { descriptions: [], artifacts: [], other: [] };
+            
+            const result = { descriptions: [], artifacts: [], other: [] };
+            const sections = description.split(/\*\*(.*?)\*\*/);
+            
+            let currentSection = 'descriptions';
+            let currentContent = '';
+            
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i].trim();
+                
+                if (section.toLowerCase().includes('description')) {
+                    currentSection = 'descriptions';
+                } else if (section.toLowerCase().includes('artifact')) {
+                    currentSection = 'artifacts';
+                } else if (section.toLowerCase().includes('nebo') || section.toLowerCase().includes('outcome') || 
+                          section.toLowerCase().includes('learning') || section.toLowerCase().includes('additional')) {
+                    currentSection = 'other';
+                } else if (section.length > 0) {
+                    // This is content, split by bullet points or newlines
+                    const items = section.split(/\n•|\n/).filter(item => item.trim().length > 0);
+                    items.forEach(item => {
+                        const cleanItem = item.replace(/^•\s*/, '').trim();
+                        if (cleanItem) {
+                            result[currentSection].push(cleanItem);
+                        }
+                    });
+                }
+            }
+            
+            return result;
+        }
+
+        // Function to toggle topic details visibility
+        function toggleTopicDetails(topicId) {
+            const detailsElement = document.getElementById(topicId);
+            const chevron = detailsElement.previousElementSibling.querySelector('.topic-chevron');
+            
+            if (detailsElement.classList.contains('hidden')) {
+                detailsElement.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                detailsElement.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Render topics in grid view
+        function renderGridView(topics, container) {
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${topics.map(topic => `
+                        <div class="topic-card bg-white rounded-xl shadow-sm border p-6 cursor-pointer status-${topic.status}" 
+                             onclick="openTopicModal(${topic.id})">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
+                                    <i data-lucide="${getStatusIconName(topic.status)}" class="w-5 h-5"></i>
+                                </div>
+                                <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
+                                    ${getStatusText(topic.status)}
+                                </span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 mb-2">${topic.title}</h4>
+                            <p class="text-sm text-gray-600 mb-3">${topic.description || ''}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500">
+                                <span>${topic.category}</span>
+                                ${topic.notes ? '<i data-lucide="sticky-note" class="w-4 h-4"></i>' : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Helper functions for UI
+        function groupTopicsByModule(topics) {
+            return topics.reduce((groups, topic) => {
+                const module = topic.module || 'Uncategorized';
+                if (!groups[module]) groups[module] = [];
+                groups[module].push(topic);
+                return groups;
+            }, {});
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'not-started': 'bg-gray-200 text-gray-600',
+                'in-progress': 'bg-yellow-200 text-yellow-600',
+                'completed': 'bg-green-200 text-green-600'
+            };
+            return icons[status] || icons['not-started'];
+        }
+
+        function getStatusIconName(status) {
+            const icons = {
+                'not-started': 'circle',
+                'in-progress': 'clock',
+                'completed': 'check'
+            };
+            return icons[status] || 'circle';
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'not-started': 'bg-gray-100 text-gray-700',
+                'in-progress': 'bg-yellow-100 text-yellow-700',
+                'completed': 'bg-green-100 text-green-700'
+            };
+            return badges[status] || badges['not-started'];
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'not-started': 'Not Started',
+                'in-progress': 'In Progress',
+                'completed': 'Completed'
+            };
+            return texts[status] || 'Not Started';
+        }
+
+        // Modal functions
+        function openTopicModal(topicId) {
+            const topic = currentTopics.find(t => t.id === topicId);
+            if (!topic) return;
+            
+            currentTopicId = topicId;
+            document.getElementById('modal-title').textContent = topic.title;
+            document.getElementById('modal-status').value = topic.status;
+            document.getElementById('modal-notes').value = topic.notes || '';
+            document.getElementById('topic-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('topic-modal').classList.add('hidden');
+            currentTopicId = null;
+        }
+
+        async function saveTopicChanges() {
+            if (!currentTopicId) return;
+            
+            const status = document.getElementById('modal-status').value;
+            const notes = document.getElementById('modal-notes').value;
+            
+            try {
+                const response = await fetch(`/api/topics/${currentTopicId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status, notes })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadTopics();
+                    loadProgress();
+                    
+                    // Show achievement if completed
+                    if (status === 'completed') {
+                        checkForNewAchievements();
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating topic:', error);
+            }
+        }
+
+        // Progress functions
+        async function loadProgress() {
+            try {
+                const response = await fetch('/api/progress');
+                const progress = await response.json();
+                
+                document.getElementById('progress-percentage').textContent = `${progress.completion_percentage}%`;
+                document.getElementById('progress-bar').style.width = `${progress.completion_percentage}%`;
+                document.getElementById('total-topics').textContent = progress.total_topics;
+                document.getElementById('completed-topics').textContent = progress.completed_topics;
+                document.getElementById('in-progress-topics').textContent = progress.in_progress_topics;
+                document.getElementById('not-started-topics').textContent = progress.not_started_topics;
+                document.getElementById('points-display').textContent = `${progress.points} Points`;
+                document.getElementById('level-display').textContent = `Level ${progress.level}`;
+            } catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        }
+
+        // Achievement functions
+        async function checkForNewAchievements() {
+            try {
+                const response = await fetch('/api/achievements');
+                const achievements = await response.json();
+                
+                if (achievements.length > 0) {
+                    const latest = achievements[0];
+                    showAchievementPopup(latest.title, latest.description);
+                }
+            } catch (error) {
+                console.error('Error checking achievements:', error);
+            }
+        }
+
+        function showAchievementPopup(title, description) {
+            const popup = document.getElementById('achievement-popup');
+            document.getElementById('achievement-title').textContent = title;
+            document.getElementById('achievement-description').textContent = description;
+            
+            popup.classList.remove('hidden');
+            
+            setTimeout(() => {
+                popup.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Data management functions
+        let selectedExcelFile = null;
+        let excelPreviewData = null;
+
+        async function loadSampleData() {
+            try {
+                const response = await fetch('/api/sample-data', { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    loadTopics();
+                    loadProgress();
+                    showSuccessMessage(`Sample data loaded successfully! ${result.count} topics added.`);
+                } else {
+                    showErrorMessage('Error loading sample data: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error loading sample data:', error);
+                showErrorMessage('Error loading sample data.');
+            }
+        }
+
+        function handleExcelUpload() {
+            const fileInput = document.getElementById('excel-upload');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            selectedExcelFile = file;
+            document.getElementById('preview-btn').classList.remove('hidden');
+            
+            // Auto-preview the file
+            previewExcel();
+        }
+
+        async function previewExcel() {
+            if (!selectedExcelFile) {
+                showErrorMessage('Please select an Excel file first.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('excel', selectedExcelFile);
+            
+            try {
+                showToast('Analyzing Excel file...', 'info');
+                
+                const response = await fetch('/api/preview-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    excelPreviewData = result;
+                    showExcelPreview(result);
+                } else {
+                    showErrorMessage('Error previewing Excel file: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error previewing Excel file:', error);
+                showErrorMessage('Network error: Unable to connect to server. Please ensure the server is running.');
+            }
+        }
+
+        function showExcelPreview(data) {
+            const content = document.getElementById('excel-preview-content');
+            
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- File Overview -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-900 mb-3">File Overview</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Total Sheets: <strong>${data.totalSheets}</strong></p>
+                                <p class="text-sm text-gray-600">Expected Structure: A1 (Level), B1 (Task), C/D (Details)</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2">Sheet Names:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    ${data.sheetNames.map(name => 
+                                        `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${name}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sheets Preview -->
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Sheets Preview (First 3 sheets)</h4>
+                        <div class="space-y-4">
+                            ${data.sheetsPreview.slice(0, 3).map(sheet => `
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h5 class="font-medium text-gray-900">Sheet ${sheet.index}: ${sheet.sheetName}</h5>
+                                        ${sheet.error ? 
+                                            `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Error</span>` :
+                                            `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Valid</span>`
+                                        }
+                                    </div>
+                                    
+                                    ${sheet.error ? `
+                                        <p class="text-red-600 text-sm">${sheet.error}</p>
+                                    ` : `
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                            <div class="bg-blue-50 rounded p-3">
+                                                <p class="text-sm font-medium text-blue-900">Level (A1):</p>
+                                                <p class="text-sm text-blue-700">${sheet.level}</p>
+                                            </div>
+                                            <div class="bg-green-50 rounded p-3">
+                                                <p class="text-sm font-medium text-green-900">Task Name (B1):</p>
+                                                <p class="text-sm text-green-700">${sheet.taskName}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        ${sheet.structureData && sheet.structureData.length > 0 ? `
+                                            <div class="bg-gray-50 rounded p-3">
+                                                <p class="text-sm font-medium text-gray-900 mb-2">Structure Data (C/D columns):</p>
+                                                <div class="max-h-32 overflow-y-auto">
+                                                    ${sheet.structureData.slice(0, 5).map(item => `
+                                                        <div class="text-xs text-gray-600 mb-1">
+                                                            <strong>Row ${item.row}:</strong> ${item.label} → ${item.value}
+                                                        </div>
+                                                    `).join('')}
+                                                    ${sheet.structureData.length > 5 ? 
+                                                        `<p class="text-xs text-gray-500 italic">... and ${sheet.structureData.length - 5} more rows</p>` : 
+                                                        ''
+                                                    }
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+                                                <p class="text-sm text-yellow-800">No structured data found in C/D columns</p>
+                                            </div>
+                                        `}
+                                    `}
+                                </div>
+                            `).join('')}
+                            
+                            ${data.sheetsPreview.length > 3 ? `
+                                <div class="text-center bg-gray-50 rounded-lg p-4">
+                                    <p class="text-sm text-gray-600">... and ${data.sheetsPreview.length - 3} more sheets will be processed</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Import Summary -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-900 mb-2">Import Process</h4>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• Each sheet will become one learning topic</li>
+                            <li>• Task Name (B1) will be used as the topic title</li>
+                            <li>• Level (A1) will be used as the category</li>
+                            <li>• All C/D column data will be combined into the description</li>
+                            <li>• Sheet names will be used for module organization</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('excel-preview-modal').classList.remove('hidden');
+        }
+
+        function closeExcelPreview() {
+            document.getElementById('excel-preview-modal').classList.add('hidden');
+            excelPreviewData = null;
+        }
+
+        async function proceedWithImport() {
+            if (!selectedExcelFile) {
+                showErrorMessage('No file selected for import.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('excel', selectedExcelFile);
+            
+            try {
+                showToast('Importing Excel file...', 'info');
+                
+                const response = await fetch('/api/upload-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    closeExcelPreview();
+                    loadTopics();
+                    loadProgress();
+                    
+                    let message = `Excel file imported successfully! ${result.count} topics added from ${result.totalSheets} sheets.`;
+                    if (result.errors && result.errors.length > 0) {
+                        message += `\n\nWarnings:\n${result.errors.slice(0, 3).join('\n')}`;
+                        if (result.errors.length > 3) {
+                            message += `\n... and ${result.errors.length - 3} more warnings.`;
+                        }
+                    }
+                    
+                    showSuccessMessage(message);
+                    
+                    // Reset file input
+                    document.getElementById('excel-upload').value = '';
+                    selectedExcelFile = null;
+                    document.getElementById('preview-btn').classList.add('hidden');
+                } else {
+                    showErrorMessage('Error importing Excel file: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error uploading Excel file:', error);
+                showErrorMessage('Network error: Unable to connect to server. Please ensure the server is running.');
+            }
+        }
+
+        // Legacy function for direct upload (keeping for compatibility)
+        async function uploadExcel() {
+            handleExcelUpload();
+        }
+
+        // Clear curriculum function
+        async function clearCurriculum() {
+            if (!confirm('Are you sure you want to clear ALL curriculum data? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                showToast('Clearing curriculum data...', 'info');
+                
+                const response = await fetch('/api/clear-curriculum', {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    loadTopics();
+                    loadProgress();
+                    showSuccessMessage('All curriculum data cleared successfully!');
+                } else {
+                    showErrorMessage('Error clearing curriculum: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error clearing curriculum:', error);
+                showErrorMessage('Network error: Unable to connect to server. Please ensure the server is running.');
+            }
+        }
+
+        // Utility functions for user feedback
+        function showSuccessMessage(message) {
+            showToast(message, 'success');
+        }
+
+        function showErrorMessage(message) {
+            showToast(message, 'error');
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white max-w-sm ${
+                type === 'success' ? 'bg-green-600' : 
+                type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        // View toggle
+        function toggleView() {
+            isGridView = !isGridView;
+            const button = document.getElementById('view-toggle');
+            
+            if (isGridView) {
+                button.innerHTML = '<i data-lucide="list" class="w-4 h-4 inline mr-2"></i>Switch to Module View';
+            } else {
+                button.innerHTML = '<i data-lucide="grid" class="w-4 h-4 inline mr-2"></i>Switch to Grid View';
+            }
+            
+            renderTopics(currentTopics);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('topic-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('excel-preview-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExcelPreview();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeExcelPreview();
+            }
+        });
+    </script>
+</body>
+</html>
