@@ -209,11 +209,12 @@ app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
                     console.log(`Sheet ${sheetName} has ${rawData.length} rows`);
                     
-                    // Parse the data to group by tasks
+                    // Parse the data to group by tasks - improved logic for your file format
                     const tasks = {};
                     let currentLevel = '';
                     let currentTask = '';
                     let currentSectionType = '';
+                    let taskCounter = 1;
                     
                     rawData.forEach((row, rowIndex) => {
                         if (row.length >= 4) {
@@ -225,13 +226,37 @@ app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
                             console.log(`Row ${rowIndex}: Level="${level}", Task="${task}", Section="${sectionType}", Content="${content.substring(0, 50)}..."`);
                             
                             // Update current level if provided
-                            if (level) {
+                            if (level && level !== currentLevel) {
                                 currentLevel = level;
                                 console.log(`  -> Updated level to: ${currentLevel}`);
+                                
+                                // If we have a level change and a task name, this is a new task
+                                if (task) {
+                                    currentTask = task;
+                                    console.log(`  -> Updated task to: ${currentTask}`);
+                                } else {
+                                    // Create a task name from the level if no explicit task
+                                    currentTask = `${currentLevel} - Topic ${taskCounter}`;
+                                    taskCounter++;
+                                    console.log(`  -> Created implicit task: ${currentTask}`);
+                                }
+                                
+                                // Initialize task if not exists
+                                if (!tasks[currentTask]) {
+                                    tasks[currentTask] = {
+                                        level: currentLevel,
+                                        task: currentTask,
+                                        descriptions: [],
+                                        artifacts: [],
+                                        neboTasks: [],
+                                        outcomes: [],
+                                        learningResources: [],
+                                        other: []
+                                    };
+                                }
                             }
-                            
-                            // Update current task if provided
-                            if (task) {
+                            // If we have a task name without level change, it's also a new task
+                            else if (task && task !== currentTask) {
                                 currentTask = task;
                                 console.log(`  -> Updated task to: ${currentTask}`);
                                 // Initialize task if not exists
@@ -619,7 +644,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Database path: ${dbPath}`);
     console.log('Server started successfully!');
-    console.log(`Server accessible at: http://0.0.0.0:${PORT}`);
 }).on('error', (err) => {
     console.error('Server failed to start:', err);
     process.exit(1);
