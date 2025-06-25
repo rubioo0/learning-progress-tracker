@@ -619,6 +619,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Database path: ${dbPath}`);
     console.log('Server started successfully!');
+    console.log(`Server accessible at: http://0.0.0.0:${PORT}`);
 }).on('error', (err) => {
     console.error('Server failed to start:', err);
     process.exit(1);
