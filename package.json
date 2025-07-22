@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "build": "npm run build:css",
     "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch",
-    "build:css-prod": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --minify || echo 'CSS build failed, continuing...'"
+    "postinstall": "npm run build:css-prod",
+    "build:css-prod": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --minify"
   },
   "keywords": ["learning", "progress", "tracker", "curriculum", "automation"],
   "author": "Learning Tracker",

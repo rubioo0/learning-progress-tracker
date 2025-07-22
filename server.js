@@ -12,36 +12,11 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 app.use(express.json());
 
-// Health check endpoint for deployment platforms
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'healthy', 
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-    });
-});
-
 // Configure multer for file uploads
-const uploadsDir = './uploads';
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-const upload = multer({ dest: uploadsDir });
+const upload = multer({ dest: 'uploads/' });
 
-// Initialize SQLite database with better error handling
-const dbPath = process.env.NODE_ENV === 'production' ? './data/learning_progress.db' : './learning_progress.db';
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
-
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to SQLite database at:', dbPath);
-    }
-});
+// Initialize SQLite database
+const db = new sqlite3.Database('./learning_progress.db');
 
 // Create tables
 db.serialize(() => {
@@ -209,12 +184,11 @@ app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
                     console.log(`Sheet ${sheetName} has ${rawData.length} rows`);
                     
-                    // Parse the data to group by tasks - improved logic for your file format
+                    // Parse the data to group by tasks
                     const tasks = {};
                     let currentLevel = '';
                     let currentTask = '';
                     let currentSectionType = '';
-                    let taskCounter = 1;
                     
                     rawData.forEach((row, rowIndex) => {
                         if (row.length >= 4) {
@@ -226,37 +200,13 @@ app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
                             console.log(`Row ${rowIndex}: Level="${level}", Task="${task}", Section="${sectionType}", Content="${content.substring(0, 50)}..."`);
                             
                             // Update current level if provided
-                            if (level && level !== currentLevel) {
+                            if (level) {
                                 currentLevel = level;
                                 console.log(`  -> Updated level to: ${currentLevel}`);
-                                
-                                // If we have a level change and a task name, this is a new task
-                                if (task) {
-                                    currentTask = task;
-                                    console.log(`  -> Updated task to: ${currentTask}`);
-                                } else {
-                                    // Create a task name from the level if no explicit task
-                                    currentTask = `${currentLevel} - Topic ${taskCounter}`;
-                                    taskCounter++;
-                                    console.log(`  -> Created implicit task: ${currentTask}`);
-                                }
-                                
-                                // Initialize task if not exists
-                                if (!tasks[currentTask]) {
-                                    tasks[currentTask] = {
-                                        level: currentLevel,
-                                        task: currentTask,
-                                        descriptions: [],
-                                        artifacts: [],
-                                        neboTasks: [],
-                                        outcomes: [],
-                                        learningResources: [],
-                                        other: []
-                                    };
-                                }
                             }
-                            // If we have a task name without level change, it's also a new task
-                            else if (task && task !== currentTask) {
+                            
+                            // Update current task if provided
+                            if (task) {
                                 currentTask = task;
                                 console.log(`  -> Updated task to: ${currentTask}`);
                                 // Initialize task if not exists
@@ -639,37 +589,6 @@ function checkAchievements() {
     });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Learning Progress Tracker running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Database path: ${dbPath}`);
-    console.log('Server started successfully!');
-}).on('error', (err) => {
-    console.error('Server failed to start:', err);
-    process.exit(1);
-});
-
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-    console.log('Shutting down gracefully...');
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err.message);
-        } else {
-            console.log('Database connection closed.');
-        }
-        process.exit(0);
-    });
-});
-
-process.on('SIGTERM', () => {
-    console.log('Received SIGTERM, shutting down gracefully...');
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err.message);
-        } else {
-            console.log('Database connection closed.');
-        }
-        process.exit(0);
-    });
+app.listen(PORT, () => {
+    console.log(`Learning Progress Tracker running on http://localhost:${PORT}`);
 });

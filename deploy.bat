@@ -5,34 +5,25 @@ echo  Quick Deployment Helper
 echo ================================
 echo.
 
-echo TROUBLESHOOTING: If you're seeing errors (502, 503, "Application loading"):
-echo 1. Check Render logs in your dashboard
-echo 2. Try Railway instead (more reliable): railway.app
-echo 3. See TROUBLESHOOTING.md for detailed help
+echo 1. Make sure you have created a GitHub repository
+echo 2. Replace YOUR_USERNAME with your actual GitHub username in the command below
 echo.
 
-echo Current fixes applied:
-echo - Better error handling
-echo - Fixed database paths  
-echo - Added health check endpoint
-echo - Improved logging
+echo To deploy to GitHub and then to Render:
+echo.
+echo git remote add origin https://github.com/YOUR_USERNAME/learning-progress-tracker.git
+echo git branch -M main  
+echo git push -u origin main
 echo.
 
-echo To update your deployment with fixes:
-echo.
-echo git add .
-echo git commit -m "Fix deployment issues"
-echo git push origin main
-echo.
-
-echo Alternative: Try Railway (recommended if Render fails):
-echo 1. Visit: https://railway.app
-echo 2. Sign up with GitHub
-echo 3. Click "Deploy from GitHub repo"  
-echo 4. Select your repository
-echo 5. Done! (Usually works better than Render)
+echo Then visit: https://render.com
+echo - Sign up with your GitHub account
+echo - Click "New +" -^> "Web Service"
+echo - Connect your GitHub repository
+echo - Use default settings (Node.js auto-detected)
+echo - Click "Create Web Service"
 echo.
 
-echo Your app will be live in 1-2 minutes!
+echo Your app will be live in 2-3 minutes!
 echo.
 pause

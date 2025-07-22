@@ -1,7 +1,20 @@
 <!DOCTYPE html>
 <html lang="        .topic-card {
-            transition: all 0.2s ease;
+            transition: all 0.2s ease;    </style>
+    <script>
+        // Theme management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
         }
+        
+        // Initialize theme before page loads
+        initializeTheme();
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">`    }
         
         .topic-card:hover {
             transform: translateY(-1px);
@@ -26,6 +39,42 @@
         
         .status-completed {
             border-left: 4px solid #10B981;
+        }
+        
+        /* Dark theme specific styles */
+        .dark .status-not-started {
+            border-left-color: #6B7280;
+        }
+        
+        .dark .status-in-progress {
+            border-left-color: #FBBF24;
+        }
+        
+        .dark .status-completed {
+            border-left-color: #34D399;
+        }
+        
+        /* Smooth transitions for theme switching */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+        
+        /* Custom scrollbar for dark theme */
+        .dark ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #6B7280;
+            border-radius: 4px;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
         }ead>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -97,17 +146,22 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-3">
-                    <i data-lucide="book-open" class="w-8 h-8 text-blue-600"></i>
-                    <h1 class="text-2xl font-bold text-gray-900">Learning Progress Tracker</h1>
+                    <i data-lucide="book-open" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Learning Progress Tracker</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-                        <i data-lucide="zap" class="w-5 h-5 text-blue-600"></i>
-                        <span class="font-semibold text-blue-700" id="points-display">0 Points</span>
+                    <!-- Theme Toggle Button -->
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors duration-200" title="Toggle theme">
+                        <i data-lucide="sun" class="w-5 h-5 text-gray-700 dark:text-gray-300 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300 block dark:hidden"></i>
+                    </button>
+                    <div class="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-lg">
+                        <i data-lucide="zap" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+                        <span class="font-semibold text-blue-700 dark:text-blue-300" id="points-display">0 Points</span>
                     </div>
-                    <div class="flex items-center space-x-2 bg-purple-50 px-3 py-2 rounded-lg">
-                        <i data-lucide="star" class="w-5 h-5 text-purple-600"></i>
-                        <span class="font-semibold text-purple-700" id="level-display">Level 1</span>
+                    <div class="flex items-center space-x-2 bg-purple-50 dark:bg-purple-900/30 px-3 py-2 rounded-lg">
+                        <i data-lucide="star" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
+                        <span class="font-semibold text-purple-700 dark:text-purple-300" id="level-display">Level 1</span>
                     </div>
                 </div>
             </div>
@@ -117,16 +171,16 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Progress Dashboard -->
-        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Progress</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Your Progress</h2>
             
             <!-- Progress Bar -->
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium text-gray-700">Overall Completion</span>
-                    <span class="text-sm font-medium text-gray-700" id="progress-percentage">0%</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Completion</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="progress-percentage">0%</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                     <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full progress-bar" 
                          style="width: 0%" id="progress-bar"></div>
                 </div>
@@ -134,72 +188,72 @@
             
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4 text-center">
-                    <div class="text-2xl font-bold text-gray-900" id="total-topics">0</div>
-                    <div class="text-sm text-gray-600">Total Topics</div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white" id="total-topics">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Total Topics</div>
                 </div>
-                <div class="bg-green-50 rounded-lg p-4 text-center">
-                    <div class="text-2xl font-bold text-green-600" id="completed-topics">0</div>
-                    <div class="text-sm text-gray-600">Completed</div>
+                <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600 dark:text-green-400" id="completed-topics">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Completed</div>
                 </div>
-                <div class="bg-yellow-50 rounded-lg p-4 text-center">
-                    <div class="text-2xl font-bold text-yellow-600" id="in-progress-topics">0</div>
-                    <div class="text-sm text-gray-600">In Progress</div>
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="in-progress-topics">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4 text-center">
-                    <div class="text-2xl font-bold text-gray-600" id="not-started-topics">0</div>
-                    <div class="text-sm text-gray-600">Not Started</div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-600 dark:text-gray-400" id="not-started-topics">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Not Started</div>
                 </div>
             </div>
         </div>
 
         <!-- Controls -->
-        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Manage Your Curriculum</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Manage Your Curriculum</h3>
             <div class="flex flex-wrap gap-4 mb-4">
                 <button onclick="loadSampleData()" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
                     <i data-lucide="database" class="w-4 h-4 inline mr-2"></i>
                     Load Sample Curriculum
                 </button>
-                <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer">
+                <label class="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer">
                     <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
                     Import Excel File
                     <input type="file" id="excel-upload" accept=".xlsx,.xls" class="hidden" onchange="handleExcelUpload()">
                 </label>
                 <button onclick="previewExcel()" id="preview-btn" 
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors hidden">
+                        class="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors hidden">
                     <i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>
                     Preview Excel Structure
                 </button>
                 <button onclick="clearCurriculum()" 
-                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        class="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
                     <i data-lucide="trash-2" class="w-4 h-4 inline mr-2"></i>
                     Clear All Data
                 </button>
                 <button onclick="toggleView()" id="view-toggle" 
-                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        class="bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
                     <i data-lucide="grid" class="w-4 h-4 inline mr-2"></i>
                     Switch to Grid View
                 </button>
             </div>
             
             <!-- Excel Import Guidelines for User's Format -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="font-medium text-blue-900 mb-2">Your Excel File Format</h4>
-                <p class="text-sm text-blue-700 mb-2">The system expects this specific structure for each sheet:</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 class="font-medium text-blue-900 dark:text-blue-300 mb-2">Your Excel File Format</h4>
+                <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">The system expects this specific structure for each sheet:</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div class="bg-blue-100 rounded px-3 py-2">
-                        <strong>Cell A1:</strong> Level (e.g., "Junior Test Automation Engineer")
+                    <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
+                        <strong class="text-blue-900 dark:text-blue-200">Cell A1:</strong> <span class="text-blue-800 dark:text-blue-300">Level (e.g., "Junior Test Automation Engineer")</span>
                     </div>
-                    <div class="bg-blue-100 rounded px-3 py-2">
-                        <strong>Cell B1:</strong> Task Name (e.g., "Perform/Execute tests...")
+                    <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
+                        <strong class="text-blue-900 dark:text-blue-200">Cell B1:</strong> <span class="text-blue-800 dark:text-blue-300">Task Name (e.g., "Perform/Execute tests...")</span>
                     </div>
-                    <div class="bg-blue-100 rounded px-3 py-2">
-                        <strong>Column C:</strong> Labels (Descriptions, ARTIFACTS, NEBo Tasks, Outcomes, Learning Resources)
+                    <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
+                        <strong class="text-blue-900 dark:text-blue-200">Column C:</strong> <span class="text-blue-800 dark:text-blue-300">Labels (Descriptions, ARTIFACTS, NEBo Tasks, Outcomes, Learning Resources)</span>
                     </div>
-                    <div class="bg-blue-100 rounded px-3 py-2">
-                        <strong>Column D:</strong> Values corresponding to Column C labels
+                    <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
+                        <strong class="text-blue-900 dark:text-blue-200">Column D:</strong> <span class="text-blue-800 dark:text-blue-300">Values corresponding to Column C labels</span>
                     </div>
                 </div>
                 <p class="text-xs text-blue-600 mt-2">The system will process all 16 sheets automatically and combine the C/D column data into comprehensive descriptions.</p>
@@ -213,33 +267,33 @@
 
         <!-- Empty State -->
         <div id="empty-state" class="text-center py-12 hidden">
-            <i data-lucide="book-open" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Topics Yet</h3>
-            <p class="text-gray-600 mb-6">Get started by loading sample data or importing your Excel file.</p>
+            <i data-lucide="book-open" class="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4"></i>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Topics Yet</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">Get started by loading sample data or importing your Excel file.</p>
             <button onclick="loadSampleData()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                    class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors">
                 Load Sample Curriculum
             </button>
         </div>
     </main>
 
     <!-- Achievement Popup -->
-    <div id="achievement-popup" class="fixed top-4 right-4 bg-white border-l-4 border-yellow-400 rounded-lg shadow-lg p-4 max-w-sm hidden achievement-popup">
+    <div id="achievement-popup" class="fixed top-4 right-4 bg-white dark:bg-gray-800 border-l-4 border-yellow-400 dark:border-yellow-500 rounded-lg shadow-lg p-4 max-w-sm hidden achievement-popup">
         <div class="flex items-start">
-            <i data-lucide="trophy" class="w-6 h-6 text-yellow-500 mt-0.5 mr-3"></i>
+            <i data-lucide="trophy" class="w-6 h-6 text-yellow-500 dark:text-yellow-400 mt-0.5 mr-3"></i>
             <div>
-                <h4 class="font-semibold text-gray-900" id="achievement-title">Achievement Unlocked!</h4>
-                <p class="text-sm text-gray-600" id="achievement-description">You've earned a new achievement!</p>
+                <h4 class="font-semibold text-gray-900 dark:text-white" id="achievement-title">Achievement Unlocked!</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-300" id="achievement-description">You've earned a new achievement!</p>
             </div>
         </div>
     </div>
 
     <!-- Excel Preview Modal -->
-    <div id="excel-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto">
+    <div id="excel-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-start mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Excel File Preview</h3>
-                <button onclick="closeExcelPreview()" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Excel File Preview</h3>
+                <button onclick="closeExcelPreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -250,11 +304,11 @@
             
             <div class="flex space-x-3 mt-6">
                 <button onclick="proceedWithImport()" 
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors">
+                        class="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white py-2 rounded-lg transition-colors">
                     Import Data
                 </button>
                 <button onclick="closeExcelPreview()" 
-                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors">
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-2 rounded-lg transition-colors">
                     Cancel
                 </button>
             </div>
@@ -262,19 +316,19 @@
     </div>
 
     <!-- Topic Detail Modal -->
-    <div id="topic-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+    <div id="topic-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-start mb-4">
-                <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Topic Details</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="modal-title">Topic Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select id="modal-status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select id="modal-status" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                         <option value="not-started">Not Started</option>
                         <option value="in-progress">In Progress</option>
                         <option value="completed">Completed</option>
@@ -282,19 +336,19 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
                     <textarea id="modal-notes" rows="4" 
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                              class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                               placeholder="Add your notes, reflections, or resources..."></textarea>
                 </div>
                 
                 <div class="flex space-x-3">
                     <button onclick="saveTopicChanges()" 
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors">
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
                         Save Changes
                     </button>
                     <button onclick="closeModal()" 
-                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors">
+                            class="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-2 rounded-lg transition-colors">
                         Cancel
                     </button>
                 </div>
@@ -307,11 +361,42 @@
         let currentTopicId = null;
         let isGridView = false;
 
+        // Theme management functions
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            
+            // Update lucide icons
+            lucide.createIcons();
+        }
+
+        // Initialize theme on page load
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
             lucide.createIcons();
             loadTopics();
             loadProgress();
+            
+            // Add theme toggle event listener
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
         });
 
         // Load topics from server
@@ -357,14 +442,14 @@
                 const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
                 
                 return `
-                    <div class="bg-white rounded-xl shadow-sm border mb-6">
-                        <div class="p-6 border-b bg-gray-50">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+                        <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-xl font-bold text-gray-800 uppercase tracking-wide">${module}</h3>
+                                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">${module}</h3>
                                 <div class="flex items-center space-x-4">
-                                    <span class="text-sm text-gray-600 font-medium">${completedCount}/${totalCount} completed</span>
-                                    <div class="w-24 bg-gray-200 rounded-full h-2">
-                                        <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">${completedCount}/${totalCount} completed</span>
+                                    <div class="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                        <div class="bg-green-500 dark:bg-green-400 h-2 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -385,58 +470,58 @@
             const topicId = `topic-${topic.id}`;
             
             return `
-                <div class="topic-card border rounded-lg overflow-hidden bg-gray-50" data-topic-id="${topic.id}">
-                    <div class="flex items-center justify-between p-4 bg-white border-b cursor-pointer" onclick="toggleTopicDetails('${topicId}')">
+                <div class="topic-card border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700/30" data-topic-id="${topic.id}">
+                                        <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600 cursor-pointer" onclick="toggleTopicDetails('${topicId}')">
                         <div class="flex items-center space-x-3">
                             <div class="w-6 h-6 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
                                 <i data-lucide="${getStatusIconName(topic.status)}" class="w-4 h-4"></i>
                             </div>
-                            <h4 class="font-medium text-gray-900">${topic.title}</h4>
+                            <h4 class="font-medium text-gray-900 dark:text-white">${topic.title}</h4>
                         </div>
                         <div class="flex items-center space-x-3">
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
                                 ${getStatusText(topic.status)}
                             </span>
                             <button onclick="event.stopPropagation(); openTopicModal(${topic.id})" 
-                                    class="text-gray-400 hover:text-gray-600 p-1">
+                                    class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1">
                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                             </button>
-                            <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transform transition-transform topic-chevron"></i>
+                            <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400 dark:text-gray-500 transform transition-transform topic-chevron"></i>
                         </div>
                     </div>
                     
-                    <div id="${topicId}" class="topic-details hidden p-4 space-y-4">
+                    <div id="${topicId}" class="topic-details hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-800/50">
                         ${parsedContent.descriptions.length > 0 ? `
                             <div>
-                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">DESCRIPTION</h5>
-                                <ul class="space-y-1 text-sm text-gray-600">
-                                    ${parsedContent.descriptions.map(desc => `<li class="flex items-start"><span class="mr-2">•</span><span>${desc}</span></li>`).join('')}
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm mb-2">DESCRIPTION</h5>
+                                <ul class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                    ${parsedContent.descriptions.map(desc => `<li class="flex items-start"><span class="mr-2 text-gray-400 dark:text-gray-500">•</span><span>${desc}</span></li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
                         
                         ${parsedContent.artifacts.length > 0 ? `
                             <div>
-                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">ARTIFACTS</h5>
-                                <ul class="space-y-1 text-sm text-gray-600">
-                                    ${parsedContent.artifacts.map(artifact => `<li class="flex items-start"><span class="mr-2">•</span><span>${artifact}</span></li>`).join('')}
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm mb-2">ARTIFACTS</h5>
+                                <ul class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                    ${parsedContent.artifacts.map(artifact => `<li class="flex items-start"><span class="mr-2 text-gray-400 dark:text-gray-500">•</span><span>${artifact}</span></li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
                         
                         ${parsedContent.other.length > 0 ? `
                             <div>
-                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">ADDITIONAL INFO</h5>
-                                <ul class="space-y-1 text-sm text-gray-600">
-                                    ${parsedContent.other.map(info => `<li class="flex items-start"><span class="mr-2">•</span><span>${info}</span></li>`).join('')}
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm mb-2">ADDITIONAL INFO</h5>
+                                <ul class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                    ${parsedContent.other.map(info => `<li class="flex items-start"><span class="mr-2 text-gray-400 dark:text-gray-500">•</span><span>${info}</span></li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
                         
                         ${topic.notes ? `
                             <div>
-                                <h5 class="font-semibold text-gray-700 uppercase tracking-wide text-sm mb-2">NOTES</h5>
-                                <p class="text-sm text-gray-600">${topic.notes}</p>
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm mb-2">NOTES</h5>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${topic.notes}</p>
                             </div>
                         ` : ''}
                     </div>
@@ -498,7 +583,7 @@
             container.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     ${topics.map(topic => `
-                        <div class="topic-card bg-white rounded-xl shadow-sm border p-6 cursor-pointer status-${topic.status}" 
+                        <div class="topic-card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 cursor-pointer status-${topic.status}" 
                              onclick="openTopicModal(${topic.id})">
                             <div class="flex items-start justify-between mb-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
@@ -508,9 +593,9 @@
                                     ${getStatusText(topic.status)}
                                 </span>
                             </div>
-                            <h4 class="font-semibold text-gray-900 mb-2">${topic.title}</h4>
-                            <p class="text-sm text-gray-600 mb-3">${topic.description || ''}</p>
-                            <div class="flex items-center justify-between text-xs text-gray-500">
+                            <h4 class="font-semibold text-gray-900 dark:text-white mb-2">${topic.title}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${topic.description || ''}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                                 <span>${topic.category}</span>
                                 ${topic.notes ? '<i data-lucide="sticky-note" class="w-4 h-4"></i>' : ''}
                             </div>
