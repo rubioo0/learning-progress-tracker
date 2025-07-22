@@ -11,26 +11,6 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script>
-        // Theme management functions
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.classList.contains('dark');
-            
-            if (isDark) {
-                html.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            
-            // Update lucide icons after theme change
-            setTimeout(() => {
-                lucide.createIcons();
-            }, 100);
-        }
-    </script>
     <style>
         .status-not-started { 
             background-color: #f3f4f6; 
@@ -99,11 +79,6 @@
             background: #374151;
         }
         
-        /* Ensure preview modals are always on top */
-        #file-preview-modal, #excel-preview-modal {
-            z-index: 10000 !important;
-        }
-        
         .dark ::-webkit-scrollbar-thumb {
             background: #6B7280;
             border-radius: 4px;
@@ -127,25 +102,6 @@
                 opacity: 1;
             }
         }
-        
-        /* Questions section styles */
-        .question-item {
-            transition: all 0.2s ease;
-        }
-        
-        .question-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .question-answered {
-            opacity: 0.8;
-        }
-        
-        .question-answered .question-text {
-            text-decoration: line-through;
-        }
-        
     </style>
     <script>
         // Theme management - Initialize before page loads
@@ -156,6 +112,25 @@
             if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                 document.documentElement.classList.add('dark');
             }
+        }
+        
+        // Theme management functions
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            
+            // Update lucide icons after theme change
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
         }
         
         // Initialize theme immediately
@@ -260,22 +235,26 @@
                 </button>
             </div>
             
-            <!-- Excel Import Guidelines for User's Format -->
+            <!-- Excel Import Guidelines -->
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 class="font-medium text-blue-900 dark:text-blue-300 mb-2">Your Excel File Format</h4>
+                <h4 class="font-medium text-blue-900 dark:text-blue-300 mb-2">Excel File Format</h4>
                 <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">The system expects this specific structure for each sheet:</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
-                        <strong class="text-blue-900 dark:text-blue-200">Cell A1:</strong> <span class="text-blue-800 dark:text-blue-300">Level (e.g., "Junior Test Automation Engineer")</span>
+                        <strong class="text-blue-900 dark:text-blue-200">Cell A1:</strong> 
+                        <span class="text-blue-800 dark:text-blue-300">Level (e.g., "Junior Test Automation Engineer")</span>
                     </div>
                     <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
-                        <strong class="text-blue-900 dark:text-blue-200">Cell B1:</strong> <span class="text-blue-800 dark:text-blue-300">Task Name (e.g., "Perform/Execute tests...")</span>
+                        <strong class="text-blue-900 dark:text-blue-200">Cell B1:</strong> 
+                        <span class="text-blue-800 dark:text-blue-300">Task Name (e.g., "Perform/Execute tests")</span>
                     </div>
                     <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
-                        <strong class="text-blue-900 dark:text-blue-200">Column C:</strong> <span class="text-blue-800 dark:text-blue-300">Labels (Descriptions, ARTIFACTS, NEBo Tasks, Outcomes, Learning Resources)</span>
+                        <strong class="text-blue-900 dark:text-blue-200">Column C:</strong> 
+                        <span class="text-blue-800 dark:text-blue-300">Labels (Descriptions, ARTIFACTS, NEBo Tasks, Outcomes, Learning Resources)</span>
                     </div>
                     <div class="bg-blue-100 dark:bg-blue-800/30 rounded px-3 py-2">
-                        <strong class="text-blue-900 dark:text-blue-200">Column D:</strong> <span class="text-blue-800 dark:text-blue-300">Values corresponding to Column C labels</span>
+                        <strong class="text-blue-900 dark:text-blue-200">Column D:</strong> 
+                        <span class="text-blue-800 dark:text-blue-300">Values corresponding to Column C labels</span>
                     </div>
                 </div>
                 <p class="text-xs text-blue-600 mt-2">The system will process all 16 sheets automatically and combine the C/D column data into comprehensive descriptions.</p>
@@ -311,7 +290,7 @@
     </div>
 
     <!-- Excel Preview Modal -->
-    <div id="excel-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-[9999] flex items-center justify-center p-4">
+    <div id="excel-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-60 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Excel File Preview</h3>
@@ -332,29 +311,6 @@
                 <button onclick="closeExcelPreview()" 
                         class="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-2 rounded-lg transition-colors">
                     Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- File Preview Modal -->
-    <div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-[9999] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-            <div class="flex justify-between items-start mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="file-preview-title">File Preview</h3>
-                <button onclick="closeFilePreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div id="file-preview-content">
-                <!-- Preview content will be loaded here -->
-            </div>
-            
-            <div class="flex justify-end mt-6">
-                <button onclick="closeFilePreview()" 
-                        class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors">
-                    Close
                 </button>
             </div>
         </div>
@@ -385,25 +341,6 @@
                     <textarea id="modal-notes" rows="4" 
                               class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                               placeholder="Add your notes, reflections, or resources..."></textarea>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Questions for Research</label>
-                    <div class="space-y-2" id="modal-questions-list">
-                        <!-- Questions will be populated here -->
-                    </div>
-                    <div class="mt-2">
-                        <div class="flex space-x-2">
-                            <input type="text" id="modal-question-input" 
-                                   placeholder="Add a question that came to mind..." 
-                                   class="flex-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                                   onkeypress="if(event.key==='Enter') addQuestionFromModal()">
-                            <button onclick="addQuestionFromModal()" 
-                                    class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors">
-                                Add
-                            </button>
-                        </div>
-                    </div>
                 </div>
                 
                 <div>
@@ -456,10 +393,35 @@
         </div>
     </div>
 
+    <!-- File Preview Modal -->
+    <div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-60 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="file-preview-title">File Preview</h3>
+                <button onclick="closeFilePreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div id="file-preview-content">
+                <!-- Preview content will be loaded here -->
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button onclick="closeFilePreview()" 
+                        class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentTopics = [];
         let currentTopicId = null;
         let isGridView = false;
+        let selectedExcelFile = null;
+        let excelPreviewData = null;
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -521,7 +483,7 @@
                                 <div class="flex items-center space-x-4">
                                     <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">${completedCount}/${totalCount} completed</span>
                                     <div class="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                        <div class="bg-green-500 dark:bg-green-400 h-2 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -543,30 +505,21 @@
             
             return `
                 <div class="topic-card border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700/30" data-topic-id="${topic.id}">
-                                        <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600 cursor-pointer" onclick="toggleTopicDetails('${topicId}')">
+                    <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600 cursor-pointer" onclick="toggleTopicDetails('${topicId}')">
                         <div class="flex items-center space-x-3">
                             <div class="w-6 h-6 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
                                 <i data-lucide="${getStatusIconName(topic.status)}" class="w-4 h-4"></i>
                             </div>
                             <h4 class="font-medium text-gray-900 dark:text-white">${topic.title}</h4>
-                            ${topic.questions && topic.questions.length > 0 ? `
-                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                    <i data-lucide="help-circle" class="w-3 h-3 mr-1"></i>
-                                    ${topic.questions.length} ${topic.questions.length === 1 ? 'question' : 'questions'}
-                                </span>
-                            ` : ''}
                         </div>
                         <div class="flex items-center space-x-3">
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
                                 ${getStatusText(topic.status)}
                             </span>
-                            ${topic.attachment_original_name ? `
-                                <button onclick="event.stopPropagation(); previewTopicAttachment(${topic.id})" 
-                                        class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 p-1"
-                                        title="Preview ${topic.attachment_original_name}">
-                                    <i data-lucide="eye" class="w-4 h-4"></i>
-                                </button>
-                            ` : ''}
+                            <div class="flex items-center space-x-2 text-gray-400 dark:text-gray-500">
+                                ${topic.attachment_original_name ? '<i data-lucide="paperclip" class="w-4 h-4" title="Has attachment"></i>' : ''}
+                                ${topic.notes ? '<i data-lucide="sticky-note" class="w-4 h-4" title="Has notes"></i>' : ''}
+                            </div>
                             <button onclick="event.stopPropagation(); openTopicModal(${topic.id})" 
                                     class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1">
                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
@@ -610,71 +563,15 @@
                             </div>
                         ` : ''}
                         
-                        <!-- Questions Section -->
-                        <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm">QUESTIONS & RESEARCH</h5>
-                                <button onclick="event.stopPropagation(); toggleQuestionInput('questions-${topic.id}')" 
-                                        class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs">
-                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>Add Question
-                                </button>
-                            </div>
-                            
-                            <!-- Questions List -->
-                            <div id="questions-list-${topic.id}" class="space-y-2 mb-3">
-                                ${topic.questions ? topic.questions.map((question, index) => `
-                                    <div class="question-item ${question.answered ? 'question-answered' : ''} bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 group">
-                                        <div class="flex items-start justify-between">
-                                            <p class="question-text text-sm text-yellow-800 dark:text-yellow-200 flex-1">${question.text}</p>
-                                            <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                                ${question.answered ? `
-                                                    <button onclick="event.stopPropagation(); toggleQuestionStatus(${topic.id}, ${index})" 
-                                                            class="text-green-600 hover:text-green-700 dark:text-green-400" title="Mark as unanswered">
-                                                        <i data-lucide="check-circle" class="w-4 h-4"></i>
-                                                    </button>
-                                                ` : `
-                                                    <button onclick="event.stopPropagation(); toggleQuestionStatus(${topic.id}, ${index})" 
-                                                            class="text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400" title="Mark as answered">
-                                                        <i data-lucide="circle" class="w-4 h-4"></i>
-                                                    </button>
-                                                `}
-                                                <button onclick="event.stopPropagation(); removeQuestion(${topic.id}, ${index})" 
-                                                        class="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400" title="Delete question">
-                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        ${question.answered ? `
-                                            <div class="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
-                                                <i data-lucide="check" class="w-3 h-3 mr-1"></i>
-                                                Answered
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                `).join('') : ''}
-                                ${!topic.questions || topic.questions.length === 0 ? `
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 italic">No questions yet. Click "Add Question" to start tracking your learning questions.</p>
-                                ` : ''}
-                            </div>
-                            
-                            <!-- Add Question Input (Hidden by default) -->
-                            <div id="questions-${topic.id}" class="hidden">
-                                <div class="flex space-x-2">
-                                    <input type="text" id="question-input-${topic.id}" 
-                                           placeholder="What question came to mind while learning this?" 
-                                           class="flex-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                                           onkeypress="if(event.key==='Enter') addQuestion(${topic.id})">
-                                    <button onclick="addQuestion(${topic.id})" 
-                                            class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors">
-                                        Add
-                                    </button>
-                                    <button onclick="toggleQuestionInput('questions-${topic.id}')" 
-                                            class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded text-sm transition-colors">
-                                        Cancel
-                                    </button>
+                        ${topic.attachment_original_name ? `
+                            <div>
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide text-sm mb-2">ATTACHMENT</h5>
+                                <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <i data-lucide="paperclip" class="w-4 h-4"></i>
+                                    <span>${topic.attachment_original_name}</span>
                                 </div>
                             </div>
-                        </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -688,7 +585,6 @@
             const sections = description.split(/\*\*(.*?)\*\*/);
             
             let currentSection = 'descriptions';
-            let currentContent = '';
             
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i].trim();
@@ -697,14 +593,16 @@
                     currentSection = 'descriptions';
                 } else if (section.toLowerCase().includes('artifact')) {
                     currentSection = 'artifacts';
-                } else if (section.toLowerCase().includes('nebo') || section.toLowerCase().includes('outcome') || 
-                          section.toLowerCase().includes('learning') || section.toLowerCase().includes('additional')) {
+                } else if (section.toLowerCase().includes('nebo') || 
+                          section.toLowerCase().includes('outcome') || 
+                          section.toLowerCase().includes('learning') || 
+                          section.toLowerCase().includes('additional')) {
                     currentSection = 'other';
-                } else if (section.length > 0) {
+                } else if (section.length > 0 && !section.includes('**')) {
                     // This is content, split by bullet points or newlines
                     const items = section.split(/\n•|\n/).filter(item => item.trim().length > 0);
                     items.forEach(item => {
-                        const cleanItem = item.replace(/^•\s*/, '').trim();
+                        const cleanItem = item.trim().replace(/^•\s*/, '');
                         if (cleanItem) {
                             result[currentSection].push(cleanItem);
                         }
@@ -740,31 +638,17 @@
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center ${getStatusIcon(topic.status)}">
                                     <i data-lucide="${getStatusIconName(topic.status)}" class="w-5 h-5"></i>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
-                                        ${getStatusText(topic.status)}
-                                    </span>
-                                    ${topic.attachment_original_name ? `
-                                        <button onclick="event.stopPropagation(); previewTopicAttachment(${topic.id})" 
-                                                class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 p-1"
-                                                title="Preview ${topic.attachment_original_name}">
-                                            <i data-lucide="eye" class="w-4 h-4"></i>
-                                        </button>
-                                    ` : ''}
-                                </div>
+                                <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(topic.status)}">
+                                    ${getStatusText(topic.status)}
+                                </span>
                             </div>
                             <h4 class="font-semibold text-gray-900 dark:text-white mb-2">${topic.title}</h4>
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-3">${(topic.description || '').substring(0, 100)}${topic.description && topic.description.length > 100 ? '...' : ''}</p>
                             <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                                 <span>${topic.module || 'Uncategorized'}</span>
-                                <div class="flex items-center space-x-2">
-                                    ${topic.questions && topic.questions.length > 0 ? `
-                                        <div class="flex items-center space-x-1" title="${topic.questions.length} question(s)">
-                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
-                                            <span>${topic.questions.length}</span>
-                                        </div>
-                                    ` : ''}
-                                    ${topic.notes ? '<i data-lucide="sticky-note" class="w-4 h-4"></i>' : ''}
+                                <div class="flex items-center space-x-1">
+                                    ${topic.attachment_original_name ? '<i data-lucide="paperclip" class="w-4 h-4" title="Has attachment"></i>' : ''}
+                                    ${topic.notes ? '<i data-lucide="sticky-note" class="w-4 h-4" title="Has notes"></i>' : ''}
                                 </div>
                             </div>
                         </div>
@@ -829,9 +713,6 @@
             document.getElementById('modal-status').value = topic.status;
             document.getElementById('modal-notes').value = topic.notes || '';
             
-            // Populate questions in modal
-            populateModalQuestions(topic.questions || []);
-            
             // Handle attachment display
             const currentAttachment = document.getElementById('current-attachment');
             const attachmentName = document.getElementById('attachment-name');
@@ -853,122 +734,8 @@
             document.getElementById('topic-modal').classList.remove('hidden');
         }
 
-        function populateModalQuestions(questions) {
-            const container = document.getElementById('modal-questions-list');
-            
-            if (questions.length === 0) {
-                container.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 italic">No questions yet.</p>';
-                return;
-            }
-            
-            container.innerHTML = questions.map((question, index) => `
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2 group">
-                    <div class="flex items-start justify-between">
-                        <p class="text-sm text-yellow-800 dark:text-yellow-200 flex-1">${question.text}</p>
-                        <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                            ${question.answered ? `
-                                <button onclick="toggleQuestionStatus(${currentTopicId}, ${index})" 
-                                        class="text-green-600 hover:text-green-700 dark:text-green-400" title="Mark as unanswered">
-                                    <i data-lucide="check-circle" class="w-3 h-3"></i>
-                                </button>
-                            ` : `
-                                <button onclick="toggleQuestionStatus(${currentTopicId}, ${index})" 
-                                        class="text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400" title="Mark as answered">
-                                    <i data-lucide="circle" class="w-3 h-3"></i>
-                                </button>
-                            `}
-                            <button onclick="removeQuestionFromModal(${index})" 
-                                    class="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400" title="Delete question">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                            </button>
-                        </div>
-                    </div>
-                    ${question.answered ? `
-                        <div class="mt-1 flex items-center text-xs text-green-600 dark:text-green-400">
-                            <i data-lucide="check" class="w-3 h-3 mr-1"></i>
-                            Answered
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-            
-            // Re-initialize lucide icons
-            setTimeout(() => lucide.createIcons(), 100);
-        }
-
-        async function addQuestionFromModal() {
-            if (!currentTopicId) return;
-            
-            const input = document.getElementById('modal-question-input');
-            const questionText = input.value.trim();
-            
-            if (!questionText) return;
-            
-            try {
-                const response = await fetch(`/api/topics/${currentTopicId}/questions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: questionText })
-                });
-                
-                if (response.ok) {
-                    input.value = '';
-                    // Refresh the topic data and update modal
-                    const updatedTopicResponse = await fetch(`/api/topics/${currentTopicId}`);
-                    const updatedTopic = await updatedTopicResponse.json();
-                    populateModalQuestions(updatedTopic.questions || []);
-                    
-                    // Update currentTopics array
-                    const topicIndex = currentTopics.findIndex(t => t.id === currentTopicId);
-                    if (topicIndex !== -1) {
-                        currentTopics[topicIndex] = updatedTopic;
-                    }
-                    
-                    showSuccessMessage('Question added successfully!');
-                } else {
-                    showErrorMessage('Error adding question');
-                }
-            } catch (error) {
-                console.error('Error adding question:', error);
-                showErrorMessage('Error adding question');
-            }
-        }
-
-        async function removeQuestionFromModal(questionIndex) {
-            if (!currentTopicId || !confirm('Are you sure you want to delete this question?')) return;
-            
-            try {
-                const response = await fetch(`/api/topics/${currentTopicId}/questions/${questionIndex}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    // Refresh the topic data and update modal
-                    const updatedTopicResponse = await fetch(`/api/topics/${currentTopicId}`);
-                    const updatedTopic = await updatedTopicResponse.json();
-                    populateModalQuestions(updatedTopic.questions || []);
-                    
-                    // Update currentTopics array
-                    const topicIndex = currentTopics.findIndex(t => t.id === currentTopicId);
-                    if (topicIndex !== -1) {
-                        currentTopics[topicIndex] = updatedTopic;
-                    }
-                    
-                    showSuccessMessage('Question deleted successfully!');
-                } else {
-                    showErrorMessage('Error deleting question');
-                }
-            } catch (error) {
-                console.error('Error deleting question:', error);
-                showErrorMessage('Error deleting question');
-            }
-        }
-
         function closeModal() {
             document.getElementById('topic-modal').classList.add('hidden');
-            document.getElementById('modal-question-input').value = '';
             currentTopicId = null;
         }
 
@@ -981,10 +748,23 @@
             const status = document.getElementById('modal-status').value;
             const notes = document.getElementById('modal-notes').value;
             const attachmentInput = document.getElementById('attachment-input');
+            const hasNewFile = attachmentInput.files.length > 0;
+            
+            console.log('Save topic changes called:', {
+                topicId: currentTopicId,
+                status: status,
+                hasNewFile: hasNewFile,
+                fileCount: attachmentInput.files.length
+            });
+            
+            if (hasNewFile) {
+                console.log('File to upload:', attachmentInput.files[0]);
+            }
             
             try {
-                // First, save the topic status and notes
-                const topicResponse = await fetch(`/api/topics/${currentTopicId}`, {
+                // First, update the topic status and notes
+                console.log('Updating topic status and notes...');
+                const response = await fetch(`/api/topics/${currentTopicId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -992,30 +772,40 @@
                     body: JSON.stringify({ status, notes })
                 });
                 
-                if (!topicResponse.ok) {
+                if (!response.ok) {
                     throw new Error('Failed to update topic');
                 }
+                console.log('Topic updated successfully');
                 
-                // If there's a file selected, upload it
-                if (attachmentInput && attachmentInput.files && attachmentInput.files.length > 0) {
+                // If there's a new file to upload, handle the file upload
+                if (hasNewFile) {
+                    console.log('Starting file upload...');
                     const formData = new FormData();
                     formData.append('attachment', attachmentInput.files[0]);
                     
-                    const attachmentResponse = await fetch(`/api/topics/${currentTopicId}/attachment`, {
+                    console.log('Sending file upload request...');
+                    const fileResponse = await fetch(`/api/topics/${currentTopicId}/attachment`, {
                         method: 'POST',
                         body: formData
                     });
                     
-                    if (!attachmentResponse.ok) {
-                        const errorData = await attachmentResponse.json();
-                        throw new Error('Failed to upload attachment: ' + (errorData.error || 'Unknown error'));
+                    console.log('File upload response status:', fileResponse.status);
+                    
+                    if (!fileResponse.ok) {
+                        const errorData = await fileResponse.json();
+                        console.error('File upload error:', errorData);
+                        throw new Error(errorData.error || 'Failed to upload attachment');
                     }
                     
-                    console.log('File attached successfully');
+                    const fileResult = await fileResponse.json();
+                    console.log('File upload successful:', fileResult);
+                    showSuccessMessage(`Topic updated and file "${fileResult.filename}" attached successfully!`);
+                } else {
+                    showSuccessMessage('Topic updated successfully!');
                 }
                 
                 closeModal();
-                loadTopics(); // Refresh the topics to show the attachment status
+                loadTopics();
                 loadProgress();
                 
                 // Show achievement if completed
@@ -1028,12 +818,21 @@
             }
         }
 
-        // Attachment functions
-        async function removeAttachment() {
-            if (!currentTopicId) {
-                console.error('No current topic ID set');
-                return;
+        // Function to download attachment
+        async function downloadAttachment() {
+            if (!currentTopicId) return;
+            
+            try {
+                window.open(`/api/topics/${currentTopicId}/attachment`, '_blank');
+            } catch (error) {
+                console.error('Error downloading attachment:', error);
+                showErrorMessage('Error downloading attachment');
             }
+        }
+
+        // Function to remove attachment
+        async function removeAttachment() {
+            if (!currentTopicId) return;
             
             if (!confirm('Are you sure you want to remove this attachment?')) {
                 return;
@@ -1045,14 +844,12 @@
                 });
                 
                 if (response.ok) {
-                    // Hide the current attachment display
+                    // Update the UI to show file upload section
                     document.getElementById('current-attachment').classList.add('hidden');
-                    // Show the file upload section
                     document.getElementById('file-upload-section').style.display = 'block';
-                    // Clear the file input
                     document.getElementById('attachment-input').value = '';
                     
-                    showSuccessMessage('Attachment removed successfully');
+                    showSuccessMessage('Attachment removed successfully!');
                     loadTopics(); // Refresh the topics to update the attachment status
                 } else {
                     const errorData = await response.json();
@@ -1061,20 +858,6 @@
             } catch (error) {
                 console.error('Error removing attachment:', error);
                 showErrorMessage('Error removing attachment');
-            }
-        }
-
-        async function downloadAttachment() {
-            if (!currentTopicId) {
-                console.error('No current topic ID set');
-                return;
-            }
-            
-            try {
-                window.open(`/api/topics/${currentTopicId}/attachment/download`, '_blank');
-            } catch (error) {
-                console.error('Error downloading attachment:', error);
-                showErrorMessage('Error downloading attachment');
             }
         }
 
@@ -1112,40 +895,6 @@
             }
         }
 
-        // Function to preview attachment directly from topic card (without modal being open)
-        async function previewTopicAttachment(topicId) {
-            console.log('Preview topic attachment called for topic ID:', topicId);
-            
-            if (!topicId) {
-                console.error('No topic ID provided');
-                showErrorMessage('No topic selected for preview');
-                return;
-            }
-            
-            try {
-                console.log('Fetching preview for topic:', topicId);
-                const response = await fetch(`/api/topics/${topicId}/attachment/preview`);
-                console.log('Preview response status:', response.status);
-                
-                if (response.ok) {
-                    const previewData = await response.json();
-                    console.log('Preview data received:', previewData);
-                    showFilePreview(previewData);
-                } else {
-                    const errorData = await response.json();
-                    console.error('Preview error response:', errorData);
-                    if (errorData.canPreview === false) {
-                        showErrorMessage('File preview not available: ' + errorData.error);
-                    } else {
-                        showErrorMessage('Error loading file preview: ' + (errorData.error || 'Unknown error'));
-                    }
-                }
-            } catch (error) {
-                console.error('Error previewing topic attachment:', error);
-                showErrorMessage('Error loading file preview: ' + error.message);
-            }
-        }
-
         // Function to show file preview in modal
         function showFilePreview(previewData) {
             const modal = document.getElementById('file-preview-modal');
@@ -1159,12 +908,21 @@
                 const xlsxData = previewData.xlsxData;
                 content.innerHTML = `
                     <div class="space-y-4">
-                        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                File Size: <strong>${formatFileSize(previewData.fileSize)}</strong> | 
-                                Sheets: <strong>${xlsxData.totalSheets}</strong>
+                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Excel File Overview</h4>
+                            <p class="text-sm text-blue-700 dark:text-blue-400">
+                                Total Sheets: <strong>${xlsxData.totalSheets}</strong> | 
+                                File Size: <strong>${formatFileSize(previewData.fileSize)}</strong>
                             </p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Sheet Names</h4>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                ${xlsxData.sheetNames.map(name => 
+                                    `<span class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded">${name}</span>`
+                                ).join('')}
+                            </div>
                         </div>
                         
                         <div>
@@ -1183,32 +941,47 @@
                                                 <p class="text-sm text-green-700 dark:text-green-400">${sheet.taskName}</p>
                                             </div>
                                         </div>
-                                        ${sheet.error ? `<p class="text-red-600 text-sm">Error: ${sheet.error}</p>` : ''}
+                                        
+                                        ${sheet.structureData && sheet.structureData.length > 0 ? `
+                                            <div class="bg-gray-50 dark:bg-gray-700 rounded p-3">
+                                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Structure Data (C/D columns):</p>
+                                                <div class="max-h-32 overflow-y-auto">
+                                                    ${sheet.structureData.slice(0, 5).map(item => `
+                                                        <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                            <strong>Row ${item.row}:</strong> ${item.label} → ${item.value}
+                                                        </div>
+                                                    `).join('')}
+                                                    ${sheet.structureData.length > 5 ? 
+                                                        `<p class="text-xs text-gray-500 italic">... and ${sheet.structureData.length - 5} more rows</p>` : 
+                                                        ''
+                                                    }
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3">
+                                                <p class="text-sm text-yellow-800 dark:text-yellow-300">No structured data found in C/D columns</p>
+                                            </div>
+                                        `}
                                     </div>
                                 `).join('')}
+                                
+                                ${xlsxData.sheetsPreview.length < xlsxData.totalSheets ? `
+                                    <div class="text-center bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">... and ${xlsxData.totalSheets - xlsxData.sheetsPreview.length} more sheets</p>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             } else {
                 // Display text file preview
-                const fileExtension = previewData.filename.split('.').pop().toLowerCase();
-                const fileType = previewData.subType || 'text';
-                
-                // Determine syntax highlighting class based on file type
-                let syntaxClass = '';
-                if (fileType === 'code') {
-                    syntaxClass = 'language-' + fileExtension;
-                } else if (fileType === 'markdown') {
-                    syntaxClass = 'language-markdown';
-                }
-                
                 content.innerHTML = `
                     <div class="space-y-4">
                         <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                             <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                File Type: <strong>${fileExtension.toUpperCase()}</strong> | 
+                                File Type: <strong>${previewData.filename.split('.').pop().toUpperCase()}</strong> | 
                                 File Size: <strong>${formatFileSize(previewData.fileSize)}</strong>
                             </p>
                         </div>
@@ -1216,7 +989,7 @@
                         <div>
                             <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Content</h4>
                             <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</pre>
+                                <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">${escapeHtml(previewData.content)}</pre>
                             </div>
                         </div>
                     </div>
@@ -1294,9 +1067,6 @@
         }
 
         // Data management functions
-        let selectedExcelFile = null;
-        let excelPreviewData = null;
-
         async function loadSampleData() {
             try {
                 const response = await fetch('/api/sample-data', { method: 'POST' });
@@ -1307,7 +1077,7 @@
                     loadProgress();
                     showSuccessMessage(`Sample data loaded successfully! ${result.count} topics added.`);
                 } else {
-                    showErrorMessage('Error loading sample data: ' + result.error);
+                    showErrorMessage('Error loading sample data: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error loading sample data:', error);
@@ -1348,7 +1118,6 @@
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
-                    excelPreviewData = result;
                     showExcelPreview(result);
                 } else {
                     showErrorMessage('Error previewing Excel file: ' + (result.error || 'Unknown error'));
@@ -1364,95 +1133,39 @@
             
             content.innerHTML = `
                 <div class="space-y-6">
-                    <!-- File Overview -->
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-medium text-gray-900 mb-3">File Overview</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm text-gray-600">Total Sheets: <strong>${data.totalSheets}</strong></p>
-                                <p class="text-sm text-gray-600">Expected Structure: A1 (Level), B1 (Task), C/D (Details)</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-600 mb-2">Sheet Names:</p>
-                                <div class="flex flex-wrap gap-1">
-                                    ${data.sheetNames.map(name => 
-                                        `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${name}</span>`
-                                    ).join('')}
-                                </div>
-                            </div>
-                        </div>
+                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <h4 class="font-semibold text-green-800 dark:text-green-300 mb-2">File Analysis Complete</h4>
+                        <p class="text-sm text-green-700 dark:text-green-400">
+                            Found ${data.totalSheets} sheets with ${data.totalTopics} topics ready for import.
+                        </p>
                     </div>
                     
-                    <!-- Sheets Preview -->
                     <div>
-                        <h4 class="font-medium text-gray-900 mb-3">Sheets Preview (First 3 sheets)</h4>
-                        <div class="space-y-4">
-                            ${data.sheetsPreview.slice(0, 3).map(sheet => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <h5 class="font-medium text-gray-900">Sheet ${sheet.index}: ${sheet.sheetName}</h5>
-                                        ${sheet.error ? 
-                                            `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Error</span>` :
-                                            `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Valid</span>`
-                                        }
-                                    </div>
-                                    
-                                    ${sheet.error ? `
-                                        <p class="text-red-600 text-sm">${sheet.error}</p>
-                                    ` : `
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                                            <div class="bg-blue-50 rounded p-3">
-                                                <p class="text-sm font-medium text-blue-900">Level (A1):</p>
-                                                <p class="text-sm text-blue-700">${sheet.level}</p>
-                                            </div>
-                                            <div class="bg-green-50 rounded p-3">
-                                                <p class="text-sm font-medium text-green-900">Task Name (B1):</p>
-                                                <p class="text-sm text-green-700">${sheet.taskName}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        ${sheet.structureData && sheet.structureData.length > 0 ? `
-                                            <div class="bg-gray-50 rounded p-3">
-                                                <p class="text-sm font-medium text-gray-900 mb-2">Structure Data (C/D columns):</p>
-                                                <div class="max-h-32 overflow-y-auto">
-                                                    ${sheet.structureData.slice(0, 5).map(item => `
-                                                        <div class="text-xs text-gray-600 mb-1">
-                                                            <strong>Row ${item.row}:</strong> ${item.label} → ${item.value}
-                                                        </div>
-                                                    `).join('')}
-                                                    ${sheet.structureData.length > 5 ? 
-                                                        `<p class="text-xs text-gray-500 italic">... and ${sheet.structureData.length - 5} more rows</p>` : 
-                                                        ''
-                                                    }
-                                                </div>
-                                            </div>
-                                        ` : `
-                                            <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
-                                                <p class="text-sm text-yellow-800">No structured data found in C/D columns</p>
-                                            </div>
-                                        `}
-                                    `}
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Preview (First 3 sheets):</h4>
+                        ${data.sheetsPreview.slice(0, 3).map(sheet => `
+                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4">
+                                <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">${sheet.name}</h5>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    <strong>Level:</strong> ${sheet.level} | <strong>Task:</strong> ${sheet.task}
+                                </p>
+                                <div class="bg-gray-50 dark:bg-gray-700 rounded p-3">
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 font-medium mb-2">Structure Data:</p>
+                                    ${sheet.structureData.slice(0, 5).map(item => 
+                                        `<p class="text-xs text-gray-600 dark:text-gray-400"><strong>${item.label}:</strong> ${item.value.substring(0, 100)}${item.value.length > 100 ? '...' : ''}</p>`
+                                    ).join('')}
+                                    ${sheet.structureData.length > 5 ? 
+                                        `<p class="text-xs text-gray-500 italic">... and ${sheet.structureData.length - 5} more rows</p>` : 
+                                        ''
+                                    }
                                 </div>
-                            `).join('')}
-                            
-                            ${data.sheetsPreview.length > 3 ? `
-                                <div class="text-center bg-gray-50 rounded-lg p-4">
-                                    <p class="text-sm text-gray-600">... and ${data.sheetsPreview.length - 3} more sheets will be processed</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    
-                    <!-- Import Summary -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="font-medium text-blue-900 mb-2">Import Process</h4>
-                        <ul class="text-sm text-blue-700 space-y-1">
-                            <li>• Each sheet will become one learning topic</li>
-                            <li>• Task Name (B1) will be used as the topic title</li>
-                            <li>• Level (A1) will be used as the category</li>
-                            <li>• All C/D column data will be combined into the description</li>
-                            <li>• Sheet names will be used for module organization</li>
-                        </ul>
+                            </div>
+                        `).join('')}
+                        
+                        ${data.sheetsPreview.length > 3 ? `
+                            <div class="text-center py-4 border-t border-gray-200 dark:border-gray-600">
+                                <p class="text-sm text-gray-600">... and ${data.sheetsPreview.length - 3} more sheets will be processed</p>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1511,7 +1224,6 @@
                 showErrorMessage('Network error: Unable to connect to server. Please ensure the server is running.');
             }
         }
-
 
         // Clear curriculum function
         async function clearCurriculum() {
@@ -1579,184 +1291,7 @@
             renderTopics(currentTopics);
         }
 
-        // Questions management functions
-        function toggleQuestionInput(inputId) {
-            const inputDiv = document.getElementById(inputId);
-            const isHidden = inputDiv.classList.contains('hidden');
-            
-            if (isHidden) {
-                inputDiv.classList.remove('hidden');
-                // Focus on the input field
-                const input = inputDiv.querySelector('input');
-                setTimeout(() => input.focus(), 100);
-            } else {
-                inputDiv.classList.add('hidden');
-                // Clear the input
-                const input = inputDiv.querySelector('input');
-                input.value = '';
-            }
-        }
-
-        async function addQuestion(topicId) {
-            const input = document.getElementById(`question-input-${topicId}`);
-            const questionText = input.value.trim();
-            
-            if (!questionText) return;
-            
-            try {
-                const response = await fetch(`/api/topics/${topicId}/questions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: questionText })
-                });
-                
-                if (response.ok) {
-                    input.value = '';
-                    toggleQuestionInput(`questions-${topicId}`);
-                    // Update only the specific topic instead of reloading all topics
-                    await updateTopicInPlace(topicId);
-                    showSuccessMessage('Question added successfully!');
-                } else {
-                    showErrorMessage('Error adding question');
-                }
-            } catch (error) {
-                console.error('Error adding question:', error);
-                showErrorMessage('Error adding question');
-            }
-        }
-
-        async function removeQuestion(topicId, questionIndex) {
-            if (!confirm('Are you sure you want to delete this question?')) return;
-            
-            try {
-                const response = await fetch(`/api/topics/${topicId}/questions/${questionIndex}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    // Update only the specific topic instead of reloading all topics
-                    await updateTopicInPlace(topicId);
-                    showSuccessMessage('Question deleted successfully!');
-                } else {
-                    showErrorMessage('Error deleting question');
-                }
-            } catch (error) {
-                console.error('Error deleting question:', error);
-                showErrorMessage('Error deleting question');
-            }
-        }
-
-        async function toggleQuestionStatus(topicId, questionIndex) {
-            try {
-                const response = await fetch(`/api/topics/${topicId}/questions/${questionIndex}/toggle`, {
-                    method: 'PUT'
-                });
-                
-                if (response.ok) {
-                    // Update only the specific topic instead of reloading all topics
-                    await updateTopicInPlace(topicId);
-                } else {
-                    showErrorMessage('Error updating question status');
-                }
-            } catch (error) {
-                console.error('Error updating question status:', error);
-                showErrorMessage('Error updating question status');
-            }
-        }
-
-        // Helper function to update a specific topic without collapsing the view
-        async function updateTopicInPlace(topicId) {
-            try {
-                console.log('updateTopicInPlace called for topic:', topicId);
-                
-                // Get the updated topic data
-                const response = await fetch(`/api/topics/${topicId}`);
-                if (!response.ok) {
-                    console.error('Failed to fetch updated topic:', response.status);
-                    return;
-                }
-                
-                const updatedTopic = await response.json();
-                console.log('Updated topic data:', updatedTopic);
-                
-                // Update the currentTopics array
-                const topicIndex = currentTopics.findIndex(t => t.id === topicId);
-                if (topicIndex !== -1) {
-                    currentTopics[topicIndex] = updatedTopic;
-                    
-                    // Update just the questions list instead of the entire topic
-                    const questionsListElement = document.getElementById(`questions-list-${topicId}`);
-                    if (questionsListElement) {
-                        // Render the questions HTML
-                        const questionsHTML = updatedTopic.questions ? updatedTopic.questions.map((question, index) => `
-                            <div class="question-item ${question.answered ? 'question-answered' : ''} bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 group">
-                                <div class="flex items-start justify-between">
-                                    <p class="question-text text-sm text-yellow-800 dark:text-yellow-200 flex-1">${question.text}</p>
-                                    <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                        ${question.answered ? `
-                                            <button onclick="event.stopPropagation(); toggleQuestionStatus(${topicId}, ${index})" 
-                                                    class="text-green-600 hover:text-green-700 dark:text-green-400" title="Mark as unanswered">
-                                                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                                            </button>
-                                        ` : `
-                                            <button onclick="event.stopPropagation(); toggleQuestionStatus(${topicId}, ${index})" 
-                                                    class="text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400" title="Mark as answered">
-                                                <i data-lucide="circle" class="w-4 h-4"></i>
-                                            </button>
-                                        `}
-                                        <button onclick="event.stopPropagation(); removeQuestion(${topicId}, ${index})" 
-                                                class="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400" title="Delete question">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                ${question.answered ? `
-                                    <div class="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
-                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
-                                        Answered
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('') : '';
-                        
-                        // Add empty state if no questions
-                        const emptyState = (!updatedTopic.questions || updatedTopic.questions.length === 0) ? 
-                            `<p class="text-xs text-gray-500 dark:text-gray-400 italic">No questions yet. Click "Add Question" to start tracking your learning questions.</p>` : '';
-                        
-                        questionsListElement.innerHTML = questionsHTML + emptyState;
-                        
-                        // Re-initialize lucide icons
-                        lucide.createIcons();
-                        console.log('Updated questions list successfully');
-                    } else {
-                        console.error('Could not find questions list element for topic:', topicId);
-                        // Fallback to full reload
-                        loadTopics();
-                    }
-                }
-            } catch (error) {
-                console.error('Error updating topic in place:', error);
-                // Fallback to full reload if in-place update fails
-                loadTopics();
-            }
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('topic-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-
-        document.getElementById('excel-preview-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeExcelPreview();
-            }
-        });
-
-        // Modal event listeners
+        // Event listeners for modal closing
         document.addEventListener('DOMContentLoaded', function() {
             // Close modal when clicking outside
             document.getElementById('topic-modal').addEventListener('click', function(e) {
@@ -1776,15 +1311,15 @@
                     closeFilePreview();
                 }
             });
-        });
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-                closeExcelPreview();
-                closeFilePreview();
-            }
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeExcelPreview();
+                    closeFilePreview();
+                }
+            });
         });
     </script>
 </body>

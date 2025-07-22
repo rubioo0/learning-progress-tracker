@@ -1,0 +1,15 @@
+This is a test file for previewing TXT files in the Learning Progress Tracker.
+
+The file preview feature should display this content in a formatted view with:
+- Proper formatting
+- Scrollable content area
+- File size information
+- Dark/light mode support
+
+Testing various content types:
+1. Plain text
+2. Code snippets: console.log("Hello World");
+3. Lists and bullet points
+4. Special characters: ñáéíóú!@#$%^&*()
+
+This demonstrates the text file preview functionality!

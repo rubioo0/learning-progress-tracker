@@ -1,0 +1,18 @@
+This is a sample text file for previewing in the Learning Progress Tracker.
+
+Features of this application:
+- Track learning progress
+- Import data from Excel files
+- Attach files to topics
+- Preview text and Excel files
+
+Code sample:
+```javascript
+function helloWorld() {
+  console.log("Hello, world!");
+}
+```
+
+Special characters test: áéíóúñü¿¡
+
+This file should display properly in the preview modal!

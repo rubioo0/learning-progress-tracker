@@ -2,10 +2,10 @@
   "name": "learning-progress-tracker",
   "version": "1.0.0",
   "description": "A web-based learning tracker for automation skills curriculum",
-  "main": "server.js",
+  "main": "server-optimized.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server-optimized.js",
+    "dev": "nodemon server-optimized.js",
     "build": "npm run build:css",
     "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch",
     "postinstall": "npm run build:css-prod",

@@ -1,0 +1,114 @@
+[
+    {
+        "title": "Introduction to Automation",
+        "description": "Understanding automation concepts and benefits",
+        "category": "Fundamentals",
+        "module": "Module 1: Fundamentals",
+        "order_index": 1
+    },
+    {
+        "title": "Automation Tools Overview",
+        "description": "Survey of popular automation tools and platforms",
+        "category": "Fundamentals",
+        "module": "Module 1: Fundamentals",
+        "order_index": 2
+    },
+    {
+        "title": "Scripting Basics",
+        "description": "Introduction to scripting languages for automation",
+        "category": "Fundamentals",
+        "module": "Module 1: Fundamentals",
+        "order_index": 3
+    },
+    {
+        "title": "Error Handling",
+        "description": "Best practices for handling errors in automation",
+        "category": "Fundamentals",
+        "module": "Module 1: Fundamentals",
+        "order_index": 4
+    },
+    {
+        "title": "Selenium WebDriver",
+        "description": "Getting started with Selenium for web automation",
+        "category": "Web Automation",
+        "module": "Module 2: Web Automation",
+        "order_index": 5
+    },
+    {
+        "title": "Page Object Model",
+        "description": "Implementing maintainable test automation with POM",
+        "category": "Web Automation",
+        "module": "Module 2: Web Automation",
+        "order_index": 6
+    },
+    {
+        "title": "Browser DevTools",
+        "description": "Using browser developer tools for automation",
+        "category": "Web Automation",
+        "module": "Module 2: Web Automation",
+        "order_index": 7
+    },
+    {
+        "title": "Dynamic Content Handling",
+        "description": "Working with AJAX and dynamic web content",
+        "category": "Web Automation",
+        "module": "Module 2: Web Automation",
+        "order_index": 8
+    },
+    {
+        "title": "REST API Basics",
+        "description": "Understanding RESTful APIs and HTTP methods",
+        "category": "API Testing",
+        "module": "Module 3: API Testing",
+        "order_index": 9
+    },
+    {
+        "title": "Postman for API Testing",
+        "description": "Using Postman for API testing and automation",
+        "category": "API Testing",
+        "module": "Module 3: API Testing",
+        "order_index": 10
+    },
+    {
+        "title": "API Test Automation",
+        "description": "Automating API tests with code",
+        "category": "API Testing",
+        "module": "Module 3: API Testing",
+        "order_index": 11
+    },
+    {
+        "title": "Authentication & Security",
+        "description": "Handling API authentication in automated tests",
+        "category": "API Testing",
+        "module": "Module 3: API Testing",
+        "order_index": 12
+    },
+    {
+        "title": "Version Control with Git",
+        "description": "Git fundamentals for automation projects",
+        "category": "CI/CD",
+        "module": "Module 4: CI/CD Integration",
+        "order_index": 13
+    },
+    {
+        "title": "Continuous Integration",
+        "description": "Setting up CI pipelines for automation",
+        "category": "CI/CD",
+        "module": "Module 4: CI/CD Integration",
+        "order_index": 14
+    },
+    {
+        "title": "Test Reporting",
+        "description": "Generating and analyzing test reports",
+        "category": "CI/CD",
+        "module": "Module 4: CI/CD Integration",
+        "order_index": 15
+    },
+    {
+        "title": "Deployment Automation",
+        "description": "Automating application deployment processes",
+        "category": "CI/CD",
+        "module": "Module 4: CI/CD Integration",
+        "order_index": 16
+    }
+]
