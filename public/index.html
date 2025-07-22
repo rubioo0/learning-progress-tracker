@@ -11,6 +11,8 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Markdown parsing library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
     <script>
         // Theme management functions
         function toggleTheme() {
@@ -30,6 +32,138 @@
                 lucide.createIcons();
             }, 100);
         }
+        
+        // Fullscreen management functions
+        let isFullscreen = false;
+        
+        function toggleFullscreen() {
+            const body = document.body;
+            const fullscreenIcon = document.getElementById('fullscreen-icon');
+            
+            if (!isFullscreen) {
+                // Enter fullscreen
+                enterFullscreen();
+            } else {
+                // Exit fullscreen
+                exitFullscreen();
+            }
+        }
+        
+        function enterFullscreen() {
+            const body = document.body;
+            const fullscreenIcon = document.getElementById('fullscreen-icon');
+            
+            // Try to use browser's fullscreen API first
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().then(() => {
+                    setFullscreenState(true);
+                }).catch(() => {
+                    // Fallback to CSS fullscreen
+                    cssFullscreen(true);
+                });
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+                setFullscreenState(true);
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+                setFullscreenState(true);
+            } else {
+                // Fallback to CSS fullscreen
+                cssFullscreen(true);
+            }
+        }
+        
+        function exitFullscreen() {
+            // Try to use browser's fullscreen API first
+            if (document.exitFullscreen) {
+                document.exitFullscreen().then(() => {
+                    setFullscreenState(false);
+                }).catch(() => {
+                    // Fallback to CSS fullscreen
+                    cssFullscreen(false);
+                });
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+                setFullscreenState(false);
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+                setFullscreenState(false);
+            } else {
+                // Fallback to CSS fullscreen
+                cssFullscreen(false);
+            }
+        }
+        
+        function cssFullscreen(enable) {
+            const body = document.body;
+            
+            if (enable) {
+                body.classList.add('fullscreen-mode');
+                setFullscreenState(true);
+                showFullscreenNotification('Entered fullscreen mode. Press ESC or click the minimize button to exit.');
+            } else {
+                body.classList.remove('fullscreen-mode');
+                setFullscreenState(false);
+            }
+        }
+        
+        function setFullscreenState(enabled) {
+            isFullscreen = enabled;
+            const fullscreenIcon = document.getElementById('fullscreen-icon');
+            
+            if (enabled) {
+                fullscreenIcon.setAttribute('data-lucide', 'minimize');
+                fullscreenIcon.title = 'Exit fullscreen';
+            } else {
+                fullscreenIcon.setAttribute('data-lucide', 'maximize');
+                fullscreenIcon.title = 'Enter fullscreen';
+            }
+            
+            // Update lucide icons
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
+            
+            // Store fullscreen state
+            localStorage.setItem('fullscreenMode', enabled.toString());
+        }
+        
+        function showFullscreenNotification(message) {
+            // Remove existing notification if any
+            const existingNotification = document.querySelector('.fullscreen-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = 'fullscreen-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Remove notification after animation
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+        
+        // Listen for fullscreen changes
+        function handleFullscreenChange() {
+            const isCurrentlyFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            
+            if (!isCurrentlyFullscreen && isFullscreen) {
+                // User exited fullscreen using ESC or F11
+                setFullscreenState(false);
+                cssFullscreen(false);
+            }
+        }
+        
+        // Add event listeners for fullscreen changes
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
     </script>
     <style>
         .status-not-started { 
@@ -146,6 +280,234 @@
             text-decoration: line-through;
         }
         
+        /* Markdown preview styles */
+        .markdown-content {
+            line-height: 1.6;
+            color: #374151;
+        }
+        
+        .dark .markdown-content {
+            color: #E5E7EB;
+        }
+        
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #111827;
+        }
+        
+        .dark .markdown-content h1,
+        .dark .markdown-content h2,
+        .dark .markdown-content h3,
+        .dark .markdown-content h4,
+        .dark .markdown-content h5,
+        .dark .markdown-content h6 {
+            color: #F9FAFB;
+        }
+        
+        .markdown-content h1 {
+            font-size: 1.875rem;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 0.5rem;
+        }
+        
+        .dark .markdown-content h1 {
+            border-bottom-color: #4B5563;
+        }
+        
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 0.25rem;
+        }
+        
+        .dark .markdown-content h2 {
+            border-bottom-color: #4B5563;
+        }
+        
+        .markdown-content h3 {
+            font-size: 1.25rem;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .markdown-content li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #3B82F6;
+            background: #EFF6FF;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+        }
+        
+        .dark .markdown-content blockquote {
+            background: #1E3A8A20;
+            border-left-color: #60A5FA;
+        }
+        
+        .markdown-content code {
+            background: #F3F4F6;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .dark .markdown-content code {
+            background: #374151;
+        }
+        
+        .markdown-content pre {
+            background: #F3F4F6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .dark .markdown-content pre {
+            background: #374151;
+        }
+        
+        .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid #D1D5DB;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        
+        .dark .markdown-content th,
+        .dark .markdown-content td {
+            border-color: #4B5563;
+        }
+        
+        .markdown-content th {
+            background: #F9FAFB;
+            font-weight: 600;
+        }
+        
+        .dark .markdown-content th {
+            background: #374151;
+        }
+        
+        .markdown-content hr {
+            border: none;
+            border-top: 2px solid #E5E7EB;
+            margin: 2rem 0;
+        }
+        
+        .dark .markdown-content hr {
+            border-top-color: #4B5563;
+        }
+        
+        .markdown-content strong {
+            font-weight: 600;
+        }
+        
+        .markdown-content em {
+            font-style: italic;
+        }
+        
+        /* Fullscreen styles */
+        .fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            background: white !important;
+            overflow: auto !important;
+        }
+        
+        .dark .fullscreen-mode {
+            background: #111827 !important;
+        }
+        
+        .fullscreen-mode .max-w-7xl {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 1rem !important;
+        }
+        
+        /* Fullscreen notification */
+        .fullscreen-notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 10000;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+        
+        /* Modal fullscreen styles */
+        .modal-fullscreen {
+            padding: 0 !important;
+        }
+        
+        .modal-fullscreen .bg-white,
+        .modal-fullscreen .dark\:bg-gray-800 {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            height: 100vh !important;
+            overflow-y: auto !important;
+        }
+        
+        /* Fix content height in fullscreen modals */
+        .modal-fullscreen .max-h-96 {
+            max-height: none !important;
+            height: calc(100vh - 200px) !important;
+        }
+        
+        .modal-fullscreen .max-h-\[80vh\] {
+            max-height: none !important;
+            height: calc(100vh - 150px) !important;
+        }
+        
+        /* Specific targeting for preview content areas */
+        .modal-fullscreen .preview-content-area {
+            max-height: calc(100vh - 250px) !important;
+            height: calc(100vh - 250px) !important;
+        }
+        
     </style>
     <script>
         // Theme management - Initialize before page loads
@@ -172,6 +534,10 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Learning Progress Tracker</h1>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <!-- Fullscreen Toggle Button -->
+                    <button id="fullscreen-toggle" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors duration-200" title="Toggle fullscreen">
+                        <i data-lucide="maximize" class="w-5 h-5 text-gray-700 dark:text-gray-300" id="fullscreen-icon"></i>
+                    </button>
                     <!-- Theme Toggle Button -->
                     <button id="theme-toggle" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors duration-200" title="Toggle theme">
                         <i data-lucide="sun" class="w-5 h-5 text-gray-700 dark:text-gray-300 hidden dark:block"></i>
@@ -315,9 +681,14 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Excel File Preview</h3>
-                <button onclick="closeExcelPreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleModalFullscreen('excel-preview-modal')" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" title="Toggle fullscreen">
+                        <i data-lucide="maximize" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="closeExcelPreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
             </div>
             
             <div id="excel-preview-content">
@@ -342,9 +713,14 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="file-preview-title">File Preview</h3>
-                <button onclick="closeFilePreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleModalFullscreen('file-preview-modal')" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" title="Toggle fullscreen">
+                        <i data-lucide="maximize" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="closeFilePreview()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
             </div>
             
             <div id="file-preview-content">
@@ -469,6 +845,17 @@
             
             // Add theme toggle event listener
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+            
+            // Add fullscreen toggle event listener
+            document.getElementById('fullscreen-toggle').addEventListener('click', toggleFullscreen);
+            
+            // Restore fullscreen state if it was previously enabled
+            const savedFullscreenState = localStorage.getItem('fullscreenMode');
+            if (savedFullscreenState === 'true') {
+                setTimeout(() => {
+                    enterFullscreen();
+                }, 500);
+            }
         });
 
         // Load topics from server
@@ -1146,6 +1533,53 @@
             }
         }
 
+        // Function to detect if content is likely Markdown
+        function isMarkdownContent(content, filename) {
+            // Check file extension
+            const markdownExtensions = ['md', 'markdown', 'mdown', 'mkd', 'mkdn'];
+            const extension = filename.split('.').pop().toLowerCase();
+            if (markdownExtensions.includes(extension)) {
+                return true;
+            }
+            
+            // Check for common Markdown patterns
+            const markdownPatterns = [
+                /^#{1,6}\s+.+$/m,              // Headers
+                /^\*\*.*\*\*$/m,              // Bold text
+                /^\*.*\*$/m,                  // Italic text
+                /^-{3,}$/m,                   // Horizontal rule
+                /^\|.*\|.*\|$/m,              // Tables
+                /^>\s+.+$/m,                  // Blockquotes
+                /^\* .+$/m,                   // Unordered lists
+                /^\d+\. .+$/m,                // Ordered lists
+                /```[\s\S]*```/,              // Code blocks
+                /`[^`]+`/                     // Inline code
+            ];
+            
+            // Count how many patterns match
+            let matchCount = 0;
+            for (const pattern of markdownPatterns) {
+                if (pattern.test(content)) {
+                    matchCount++;
+                }
+            }
+            
+            // If 3 or more patterns match, consider it Markdown
+            return matchCount >= 3;
+        }
+
+        // Function to configure marked options
+        function configureMarked() {
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    headerIds: false,
+                    mangle: false
+                });
+            }
+        }
+
         // Function to show file preview in modal
         function showFilePreview(previewData) {
             const modal = document.getElementById('file-preview-modal');
@@ -1195,12 +1629,48 @@
                 const fileExtension = previewData.filename.split('.').pop().toLowerCase();
                 const fileType = previewData.subType || 'text';
                 
-                // Determine syntax highlighting class based on file type
-                let syntaxClass = '';
-                if (fileType === 'code') {
-                    syntaxClass = 'language-' + fileExtension;
-                } else if (fileType === 'markdown') {
-                    syntaxClass = 'language-markdown';
+                // Check if content should be rendered as Markdown
+                const isMarkdown = isMarkdownContent(previewData.content, previewData.filename);
+                
+                // Configure marked if available
+                configureMarked();
+                
+                let contentDisplay = '';
+                let contentTypeLabel = fileExtension.toUpperCase();
+                
+                if (isMarkdown && typeof marked !== 'undefined') {
+                    // Render as Markdown
+                    try {
+                        const htmlContent = marked.parse(previewData.content);
+                        contentDisplay = `
+                            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-6 max-h-96 overflow-y-auto preview-content-area">
+                                <div class="markdown-content">${htmlContent}</div>
+                            </div>
+                        `;
+                        contentTypeLabel += ' (Markdown)';
+                    } catch (error) {
+                        console.error('Error parsing Markdown:', error);
+                        // Fallback to plain text
+                        contentDisplay = `
+                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
+                                <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">${escapeHtml(previewData.content)}</pre>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Display as plain text or code
+                    let syntaxClass = '';
+                    if (fileType === 'code') {
+                        syntaxClass = 'language-' + fileExtension;
+                    } else if (fileType === 'markdown') {
+                        syntaxClass = 'language-markdown';
+                    }
+                    
+                    contentDisplay = `
+                        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
+                            <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</pre>
+                        </div>
+                    `;
                 }
                 
                 content.innerHTML = `
@@ -1208,16 +1678,29 @@
                         <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                             <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                File Type: <strong>${fileExtension.toUpperCase()}</strong> | 
+                                File Type: <strong>${contentTypeLabel}</strong> | 
                                 File Size: <strong>${formatFileSize(previewData.fileSize)}</strong>
                             </p>
+                            ${isMarkdown ? `
+                                <div class="mt-2 flex items-center space-x-2">
+                                    <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">Rendered View</span>
+                                    <button onclick="toggleMarkdownView(this)" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Switch to Raw</button>
+                                </div>
+                            ` : ''}
                         </div>
                         
                         <div>
                             <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Content</h4>
-                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</pre>
+                            <div id="content-display">
+                                ${contentDisplay}
                             </div>
+                            ${isMarkdown ? `
+                                <div id="raw-content" class="hidden">
+                                    <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
+                                        <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</pre>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1229,6 +1712,83 @@
         // Function to close file preview modal
         function closeFilePreview() {
             document.getElementById('file-preview-modal').classList.add('hidden');
+        }
+
+        // Function to toggle between Markdown rendered and raw view
+        function toggleMarkdownView(button) {
+            const contentDisplay = document.getElementById('content-display');
+            const rawContent = document.getElementById('raw-content');
+            
+            if (contentDisplay && rawContent) {
+                if (rawContent.classList.contains('hidden')) {
+                    // Show raw content
+                    contentDisplay.classList.add('hidden');
+                    rawContent.classList.remove('hidden');
+                    button.textContent = 'Switch to Rendered';
+                    
+                    // Update the badge
+                    const badge = button.parentElement.querySelector('span');
+                    if (badge) {
+                        badge.textContent = 'Raw View';
+                        badge.className = 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 text-xs px-2 py-1 rounded';
+                    }
+                } else {
+                    // Show rendered content
+                    contentDisplay.classList.remove('hidden');
+                    rawContent.classList.add('hidden');
+                    button.textContent = 'Switch to Raw';
+                    
+                    // Update the badge
+                    const badge = button.parentElement.querySelector('span');
+                    if (badge) {
+                        badge.textContent = 'Rendered View';
+                        badge.className = 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded';
+                    }
+                }
+            }
+        }
+
+        // Function to toggle modal fullscreen
+        function toggleModalFullscreen(modalId) {
+            const modal = document.getElementById(modalId);
+            const modalContent = modal.querySelector('.bg-white, .dark\\:bg-gray-800');
+            const fullscreenButton = modal.querySelector('[onclick*="toggleModalFullscreen"]');
+            const fullscreenIcon = fullscreenButton.querySelector('[data-lucide]');
+            
+            if (modal.classList.contains('modal-fullscreen')) {
+                // Exit modal fullscreen
+                modal.classList.remove('modal-fullscreen');
+                modalContent.classList.remove('max-w-none', 'w-full', 'h-full', 'm-0');
+                modalContent.classList.add('max-w-4xl', 'max-h-[80vh]');
+                fullscreenIcon.setAttribute('data-lucide', 'maximize');
+                fullscreenButton.title = 'Toggle fullscreen';
+                
+                // Reset content areas to original constraints
+                const previewAreas = modal.querySelectorAll('.preview-content-area');
+                previewAreas.forEach(area => {
+                    area.style.maxHeight = '';
+                    area.style.height = '';
+                });
+            } else {
+                // Enter modal fullscreen
+                modal.classList.add('modal-fullscreen');
+                modalContent.classList.add('max-w-none', 'w-full', 'h-full', 'm-0');
+                modalContent.classList.remove('max-w-4xl', 'max-h-[80vh]');
+                fullscreenIcon.setAttribute('data-lucide', 'minimize');
+                fullscreenButton.title = 'Exit fullscreen';
+                
+                // Expand preview content areas to use available space
+                const previewAreas = modal.querySelectorAll('.preview-content-area');
+                previewAreas.forEach(area => {
+                    area.style.maxHeight = 'calc(100vh - 250px)';
+                    area.style.height = 'calc(100vh - 250px)';
+                });
+            }
+            
+            // Re-initialize lucide icons
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
         }
 
         // Helper function to format file size
@@ -1784,6 +2344,17 @@
                 closeModal();
                 closeExcelPreview();
                 closeFilePreview();
+                
+                // Exit fullscreen on ESC
+                if (isFullscreen) {
+                    exitFullscreen();
+                }
+            }
+            
+            // F11 for fullscreen toggle
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
             }
         });
     </script>
