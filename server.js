@@ -549,6 +549,148 @@ app.delete('/api/clear-curriculum', (req, res) => {
     });
 });
 
+// File attachment endpoints
+app.post('/api/topics/:id/attachment', upload.single('attachment'), (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const { path: attachmentPath, originalname, filename } = req.file;
+    db.run(
+        'UPDATE topics SET attachment_filename = ?, attachment_original_name = ?, attachment_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [filename, originalname, attachmentPath, id],
+        function(err) {
+            if (err) {
+                // Clean up file if DB update fails
+                if (attachmentPath && fs.existsSync(attachmentPath)) fs.unlinkSync(attachmentPath);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: 'File attached successfully', filename: originalname });
+        }
+    );
+});
+
+app.get('/api/topics/:id/attachment', (req, res) => {
+    const { id } = req.params;
+    db.get('SELECT attachment_path, attachment_original_name FROM topics WHERE id = ?', [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row || !row.attachment_path) {
+            return res.status(404).json({ error: 'No attachment found for this topic' });
+        }
+        const filePath = path.join(__dirname, row.attachment_path);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Attachment file not found on disk' });
+        }
+        res.download(filePath, row.attachment_original_name);
+    });
+});
+
+app.delete('/api/topics/:id/attachment', (req, res) => {
+    const { id } = req.params;
+    db.get('SELECT attachment_path FROM topics WHERE id = ?', [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row && row.attachment_path && fs.existsSync(row.attachment_path)) {
+            fs.unlinkSync(row.attachment_path);
+        }
+        db.run(
+            'UPDATE topics SET attachment_filename = NULL, attachment_original_name = NULL, attachment_path = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [id],
+            function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: 'Attachment removed successfully' });
+            }
+        );
+    });
+});
+
+// Add this endpoint for file preview (text/xlsx)
+app.get('/api/topics/:id/attachment/preview', (req, res) => {
+    const { id } = req.params;
+    db.get('SELECT attachment_path, attachment_original_name FROM topics WHERE id = ?', [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message, canPreview: false });
+        if (!row || !row.attachment_path) {
+            return res.status(404).json({ error: 'No attachment found for this topic', canPreview: false });
+        }
+        const filePath = path.join(__dirname, row.attachment_path);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Attachment file not found on disk', canPreview: false });
+        }
+
+        // Only allow preview for text and xlsx files (simple check)
+        const ext = path.extname(row.attachment_original_name).toLowerCase();
+        const textExts = ['.txt', '.md', '.markdown', '.json', '.js', '.ts', '.py', '.java', '.c', '.cpp'];
+        const xlsxExts = ['.xlsx', '.xls'];
+        const maxPreviewSize = 50 * 1024; // 50KB
+
+        if (![...textExts, ...xlsxExts].includes(ext)) {
+            return res.status(400).json({ error: 'File type not supported for preview', canPreview: false });
+        }
+        try {
+            const stats = fs.statSync(filePath);
+            if (stats.size > maxPreviewSize) {
+                return res.status(400).json({ error: 'File too large for preview (max 50KB)', canPreview: false });
+            }
+            if (xlsxExts.includes(ext)) {
+                // XLSX preview (first 3 sheets, basic info)
+                try {
+                    const XLSX = require('xlsx');
+                    const workbook = XLSX.readFile(filePath);
+                    const sheetsPreview = [];
+                    workbook.SheetNames.slice(0, 3).forEach((sheetName, index) => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        let level = 'Not found', taskName = 'Not found';
+                        try {
+                            const levelCell = worksheet['A1'];
+                            const taskNameCell = worksheet['B1'];
+                            level = levelCell && levelCell.v ? levelCell.v.toString().trim() : 'Not found';
+                            taskName = taskNameCell && taskNameCell.v ? taskNameCell.v.toString().trim() : 'Not found';
+                        } catch {}
+                        sheetsPreview.push({
+                            sheetName,
+                            index: index + 1,
+                            level,
+                            taskName,
+                            structureData: [],
+                            dataFound: true
+                        });
+                    });
+                    return res.json({
+                        type: 'xlsx',
+                        xlsxData: {
+                            totalSheets: workbook.SheetNames.length,
+                            sheetNames: workbook.SheetNames,
+                            sheetsPreview
+                        },
+                        filename: row.attachment_original_name,
+                        fileSize: stats.size,
+                        canPreview: true
+                    });
+                } catch (e) {
+                    return res.status(500).json({ error: 'Error parsing XLSX file: ' + e.message, canPreview: false });
+                }
+            } else {
+                // Text file preview
+                let content = '';
+                try {
+                    content = fs.readFileSync(filePath, 'utf8');
+                } catch (e) {
+                    return res.status(500).json({ error: 'Error reading file: ' + e.message, canPreview: false });
+                }
+                return res.json({
+                    type: 'text',
+                    content,
+                    filename: row.attachment_original_name,
+                    fileSize: stats.size,
+                    extension: ext,
+                    canPreview: true
+                });
+            }
+        } catch (e) {
+            return res.status(500).json({ error: 'Error accessing file: ' + e.message, canPreview: false });
+        }
+    });
+});
+
 // Helper functions
 function updateProgress() {
     db.get(`
