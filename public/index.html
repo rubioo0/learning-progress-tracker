@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Progress Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class'
@@ -342,9 +345,22 @@
         .markdown-content ul,
         .markdown-content ol {
             margin-bottom: 1rem;
-            padding-left: 1.5rem;
+            padding-left: 2rem;
         }
-        
+        .markdown-content ul {
+            list-style-type: disc;
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+        .markdown-content ol {
+            list-style-type: decimal;
+        }
+        .markdown-content ul ul {
+            list-style-type: circle;
+        }
+        .markdown-content ul ul ul {
+            list-style-type: square;
+        }
         .markdown-content li {
             margin-bottom: 0.25rem;
         }
@@ -525,6 +541,26 @@
     </script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+
+    <!-- Learning Timer Notification -->
+    <div id="timer-notification" class="fixed top-6 right-6 z-50 bg-red-600 text-white px-6 py-4 rounded-lg shadow-lg hidden">
+        <span id="timer-message">Session expired!</span>
+    </div>
+
+    <!-- Simple Time Tracking Section -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="text-center">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Learning Time Tracker</h2>
+                
+                <!-- Timer Display -->
+                <div class="mb-4">
+                    <div class="text-3xl font-mono text-blue-600 dark:text-blue-400" id="learning-timer-display">00:00:00</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1" id="total-time-display">Total: 0h 0m</div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Header -->
     <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -534,6 +570,33 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Learning Progress Tracker</h1>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <!-- Session Timer -->
+                    <!-- <div class="flex items-center space-x-2 bg-orange-50 dark:bg-orange-900/30 px-3 py-2 rounded-lg">
+                        <i data-lucide="clock" class="w-5 h-5 text-orange-600 dark:text-orange-400"></i>
+                        <span class="font-semibold text-orange-700 dark:text-orange-300" id="session-timer">00:00</span>
+                    </div> -->
+                    <!-- Session Controls -->
+                    <!-- <button id="start-session-btn" onclick="startLearningSession()" 
+                            class="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white px-3 py-2 rounded-lg transition-colors text-sm">
+                        <i data-lucide="play" class="w-4 h-4 inline mr-1"></i>
+                        Start Session
+                    </button> -->
+                    <button id="terminate-session-btn" onclick="terminateSession()" 
+                            class="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm hidden">
+                        <i data-lucide="square" class="w-4 h-4 inline mr-1"></i>
+                        Terminate Session
+                    </button>
+                    <!-- Clear Today's Data Button -->
+                    <button id="clear-today-btn" onclick="clearTodayData()" 
+                            class="bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition-colors text-sm" title="Clear today's learning data">
+                        <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>
+                        Clear Today
+                    </button>
+                    <button id="learning-control-btn" onclick="toggleLearningTimer()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors text-sm" title="Start/Stop learning timer">
+                        <i data-lucide="play" class="w-4 h-4 inline mr-1"></i>
+                        Start Learning
+                    </button>
                     <!-- Fullscreen Toggle Button -->
                     <button id="fullscreen-toggle" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors duration-200" title="Toggle fullscreen">
                         <i data-lucide="maximize" class="w-5 h-5 text-gray-700 dark:text-gray-300" id="fullscreen-icon"></i>
@@ -591,6 +654,58 @@
                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
                     <div class="text-2xl font-bold text-gray-600 dark:text-gray-400" id="not-started-topics">0</div>
                     <div class="text-sm text-gray-600 dark:text-gray-400">Not Started</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Calendar -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Learning Calendar</h2>
+            
+            <!-- Calendar Navigation -->
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="changeTimeTrackingCalendarMonth(-1)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    <i data-lucide="chevron-left" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i>
+                </button>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white" id="calendar-month-year"></h3>
+                <button onclick="changeTimeTrackingCalendarMonth(1)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i>
+                </button>
+            </div>
+            
+            <!-- Calendar Grid -->
+            <div class="grid grid-cols-7 gap-1 text-center">
+                <!-- Day Headers -->
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Sun</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Mon</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Tue</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Wed</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Thu</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Fri</div>
+                <div class="font-medium text-gray-600 dark:text-gray-400 py-2">Sat</div>
+                <!-- Calendar Days -->
+                <div id="calendar-days" class="col-span-7 grid grid-cols-7 gap-1">
+                    <!-- Days will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Calendar Legend -->
+            <div class="flex justify-center items-center space-x-4 mt-4 text-xs">
+                <div class="flex items-center space-x-1">
+                    <div class="w-3 h-3 bg-green-500 rounded"></div>
+                    <span class="text-gray-600 dark:text-gray-400">60+ min</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <div class="w-3 h-3 bg-green-300 rounded"></div>
+                    <span class="text-gray-600 dark:text-gray-400">30+ min</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <div class="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                    <span class="text-gray-600 dark:text-gray-400">Any learning</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <div class="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <span class="text-gray-600 dark:text-gray-400">No activity</span>
                 </div>
             </div>
         </div>
@@ -736,6 +851,32 @@
         </div>
     </div>
 
+    <!-- Session Completion Modal -->
+    <div id="session-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-[10000] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-4">
+                    <i data-lucide="clock" class="w-6 h-6 text-orange-600 dark:text-orange-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Learning Session Ended</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">You've completed 1 hour of learning! Would you like to continue?</p>
+                
+                <div class="flex space-x-3">
+                    <button onclick="continueSession()" 
+                            class="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white py-3 rounded-lg transition-colors font-medium">
+                        <i data-lucide="play" class="w-4 h-4 inline mr-2"></i>
+                        Continue Learning
+                    </button>
+                    <button onclick="closeApp()" 
+                            class="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white py-3 rounded-lg transition-colors font-medium">
+                        <i data-lucide="power" class="w-4 h-4 inline mr-2"></i>
+                        Close App
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Topic Detail Modal -->
     <div id="topic-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
@@ -837,26 +978,609 @@
         let currentTopicId = null;
         let isGridView = false;
 
+        // Session management variables
+        let sessionStartTime = null;
+        let sessionInterval = null;
+        let currentSessionMinutes = 0;
+        let currentCalendarDate = new Date();
+        let currentTimeTrackingCalendarDate = new Date(); // Dedicated for time tracking
+        let learningData = [];
+
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-            loadTopics();
-            loadProgress();
+            console.log('DOM loaded, initializing...');
             
-            // Add theme toggle event listener
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-            
-            // Add fullscreen toggle event listener
-            document.getElementById('fullscreen-toggle').addEventListener('click', toggleFullscreen);
-            
-            // Restore fullscreen state if it was previously enabled
-            const savedFullscreenState = localStorage.getItem('fullscreenMode');
-            if (savedFullscreenState === 'true') {
-                setTimeout(() => {
-                    enterFullscreen();
-                }, 500);
+            try {
+                lucide.createIcons();
+                console.log('Lucide icons created');
+                
+                loadTopics();
+                console.log('Loading topics...');
+                
+                loadProgress();
+                console.log('Loading progress...');
+                
+                // Initialize time tracking system
+                initializeTimeTracking();
+                console.log('Time tracking initialized...');
+                
+                // Initialize simple learning time tracking
+                initializeLearningTimeTracking();
+                console.log('Learning time tracking initialized...');
+                
+                // Add longer delay and error handling for new endpoints
+                setTimeout(async () => {
+                    console.log('Loading calendar and session status...');
+                    
+                    try {
+                        await loadTimeTrackingCalendar();
+                        console.log('Time tracking calendar loaded successfully');
+                    } catch (error) {
+                        console.error('Time tracking calendar loading failed:', error);
+                    }
+                    
+                    try {
+                        await checkSessionStatus();
+                        console.log('Session status checked successfully');
+                    } catch (error) {
+                        console.error('Session status check failed:', error);
+                    }
+                }, 2000);
+                
+                // Add theme toggle event listener
+                document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+                console.log('Theme toggle listener added');
+                
+                // Add fullscreen toggle event listener
+                document.getElementById('fullscreen-toggle').addEventListener('click', toggleFullscreen);
+                console.log('Fullscreen toggle listener added');
+                
+                // Force refresh the total display after all initialization
+                setTimeout(async () => {
+                    try {
+                        await updateTotalLearningTimeDisplay();
+                        
+                        // Also reset all timer displays to ensure clean state
+                        const learningTimerDisplay = document.getElementById('learning-timer-display');
+                        const sessionTimer = document.getElementById('session-timer');
+                        
+                        if (learningTimerDisplay) {
+                            learningTimerDisplay.textContent = '00:00:00';
+                            console.log('Reset learning-timer-display to 00:00:00');
+                        }
+                        
+                        if (sessionTimer) {
+                            sessionTimer.textContent = '00:00';
+                            console.log('Reset session-timer to 00:00');
+                        }
+                        
+                        console.log('Final display refresh completed');
+                    } catch (error) {
+                        console.error('Error in final display refresh:', error);
+                    }
+                }, 3000);
+                
+                // Restore fullscreen state if it was previously enabled
+                const savedFullscreenState = localStorage.getItem('fullscreenMode');
+                if (savedFullscreenState === 'true') {
+                    setTimeout(() => {
+                        enterFullscreen();
+                    }, 500);
+                }
+                
+                console.log('Initialization completed successfully');
+            } catch (error) {
+                console.error('Initialization error:', error);
             }
         });
+
+        // Session management functions
+        async function startLearningSession() {
+            console.log('startLearningSession called');
+            
+            try {
+                console.log('Making fetch request to /api/session/start');
+                const response = await fetch('/api/session/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response received:', response.status, response.ok);
+                
+                if (!response.ok) {
+                    console.error('Start session request failed:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    showErrorMessage('Failed to start session: ' + response.statusText);
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('Session start result:', result);
+                
+                sessionStartTime = new Date();
+                currentSessionMinutes = 0;
+                
+                // Update UI
+                const startBtn = document.getElementById('start-session-btn');
+                const terminateBtn = document.getElementById('terminate-session-btn');
+                
+                if (startBtn && terminateBtn) {
+                    startBtn.classList.add('hidden');
+                    terminateBtn.classList.remove('hidden');
+                    console.log('UI updated successfully');
+                } else {
+                    console.error('Session buttons not found in DOM');
+                }
+                
+                // Start timer
+                sessionInterval = setInterval(updateSessionTimer, 1000);
+                console.log('Timer started');
+                
+                showSuccessMessage('Learning session started! Timer is now active.');
+            } catch (error) {
+                console.error('Error starting session:', error);
+                showErrorMessage('Error starting session: ' + error.message);
+            }
+        }
+
+        function updateSessionTimer() {
+            if (!sessionStartTime) return;
+            
+            const now = new Date();
+            const elapsedMs = now - sessionStartTime;
+            const elapsedMinutes = Math.floor(elapsedMs / 60000);
+            const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000);
+            
+            currentSessionMinutes = elapsedMinutes;
+            
+            // Update timer display - fix the format calculation
+            const timerDisplay = document.getElementById('session-timer');
+            const hours = Math.floor(elapsedMinutes / 60);
+            const minutes = elapsedMinutes % 60;
+            timerDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(elapsedSeconds).padStart(2, '0')}`;
+            
+            // Check if 1 hour (60 minutes) has passed - but only check at the exact minute
+            // Also add a flag to prevent multiple triggers
+            if (elapsedMinutes >= 60 && elapsedSeconds === 0 && !window.sessionModalShown) {
+                window.sessionModalShown = true;
+                showSessionCompletionModal();
+            }
+        }
+
+        function showSessionCompletionModal() {
+            clearInterval(sessionInterval);
+            document.getElementById('session-modal').classList.remove('hidden');
+        }
+
+        async function continueSession() {
+            try {
+                const response = await fetch('/api/session/continue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ elapsed_minutes: currentSessionMinutes })
+                });
+                
+                if (response.ok) {
+                    // Reset session timer but keep UI active
+                    sessionStartTime = new Date();
+                    sessionInterval = setInterval(updateSessionTimer, 1000);
+                    
+                    // Close modal
+                    document.getElementById('session-modal').classList.add('hidden');
+                    
+                    // Record the completed hour and update calendar
+                    await recordLearningSession(60, true);
+                    await loadTimeTrackingCalendar();
+                    
+                    showSuccessMessage('Session continued! Starting new hour...');
+                } else {
+                    showErrorMessage('Failed to continue session');
+                }
+            } catch (error) {
+                console.error('Error continuing session:', error);
+                showErrorMessage('Error continuing session');
+            }
+        }
+
+        async function closeApp() {
+            try {
+                // Record the completed session
+                await recordLearningSession(currentSessionMinutes, true);
+                
+                const response = await fetch('/api/shutdown', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ elapsed_minutes: currentSessionMinutes })
+                });
+                
+                if (response.ok) {
+                    showSuccessMessage('Data saved. Please close this tab to exit.');
+                } else {
+                    showErrorMessage('Error shutting down');
+                }
+            } catch (error) {
+                console.error('Error shutting down:', error);
+                showErrorMessage('Error shutting down');
+            }
+        }
+
+        async function terminateSession() {
+            if (!confirm('Are you sure you want to terminate the session? This will save your progress and shut down the app.')) {
+                return;
+            }
+            
+            // Clear both timer systems
+            clearInterval(sessionInterval);
+            stopLearningTimerDisplay();
+            
+            // Reset states
+            sessionStartTime = null;
+            sessionInterval = null;
+            currentLearningSessionId = null;
+            learningStartTime = null;
+            isLearningInProgress = false;
+            
+            // Reset UI
+            const startBtn = document.getElementById('start-session-btn');
+            const terminateBtn = document.getElementById('terminate-session-btn');
+            if (startBtn) startBtn.classList.remove('hidden');
+            if (terminateBtn) terminateBtn.classList.add('hidden');
+            document.getElementById('session-timer').textContent = '00:00:00';
+            
+            const btn = document.getElementById('learning-control-btn');
+            btn.innerHTML = '<i data-lucide="play" class="w-5 h-5 inline mr-2"></i>Start Learning';
+            btn.className = 'bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors';
+            
+            try {
+                await recordLearningSession(currentSessionMinutes, false);
+                
+                const response = await fetch('/api/shutdown', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ elapsed_minutes: currentSessionMinutes })
+                });
+                
+                if (response.ok) {
+                    showSuccessMessage('Session terminated. Data saved. Please close this tab to exit.');
+                } else {
+                    showErrorMessage('Error terminating session');
+                }
+            } catch (error) {
+                console.error('Error terminating session:', error);
+                showErrorMessage('Error terminating session');
+            }
+        }
+
+        // Clear today's learning data
+        async function clearTodayData() {
+            if (!confirm('Are you sure you want to clear all learning data for today? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/time-tracking/clear-today', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: 'default_user'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Today\'s data cleared:', result);
+                    
+                    // Reset any active session first
+                    if (isLearningInProgress) {
+                        clearInterval(sessionInterval);
+                        stopLearningTimerDisplay();
+                        
+                        // Reset states
+                        sessionStartTime = null;
+                        sessionInterval = null;
+                        currentLearningSessionId = null;
+                        learningStartTime = null;
+                        isLearningInProgress = false;
+                        
+                        // Reset UI
+                        const startBtn = document.getElementById('start-session-btn');
+                        const terminateBtn = document.getElementById('terminate-session-btn');
+                        if (startBtn) startBtn.classList.remove('hidden');
+                        if (terminateBtn) terminateBtn.classList.add('hidden');
+                        document.getElementById('session-timer').textContent = '00:00:00';
+                        
+                        const btn = document.getElementById('learning-control-btn');
+                        btn.innerHTML = '<i data-lucide="play" class="w-5 h-5 inline mr-2"></i>Start Learning';
+                        btn.className = 'bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors';
+                    }
+                    
+                    // Refresh displays
+                    await updateTotalLearningTimeDisplay();
+                    await loadTimeTrackingCalendar();
+                    
+                    showSuccessMessage(`Cleared ${result.deletedSessions} session(s) from today. Total time reset.`);
+                } else {
+                    const error = await response.json();
+                    showErrorMessage('Error clearing today\'s data: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error clearing today\'s data:', error);
+                showErrorMessage('Error clearing today\'s data');
+            }
+        }
+
+        // Manual function to reset all timer displays (can be called from console)
+        function resetAllTimerDisplays() {
+            console.log('Manually resetting all timer displays...');
+            
+            // Reset main learning timer display
+            const learningTimerDisplay = document.getElementById('learning-timer-display');
+            if (learningTimerDisplay) {
+                learningTimerDisplay.textContent = '00:00:00';
+                learningTimerDisplay.innerHTML = '00:00:00'; // Force innerHTML update too
+                console.log('Reset learning-timer-display to 00:00:00');
+                console.log('Current learning-timer-display value:', learningTimerDisplay.textContent);
+            }
+            
+            // Reset session timer in header
+            const sessionTimer = document.getElementById('session-timer');
+            if (sessionTimer) {
+                sessionTimer.textContent = '00:00';
+                sessionTimer.innerHTML = '00:00'; // Force innerHTML update too
+                console.log('Reset session-timer to 00:00');
+                console.log('Current session-timer value:', sessionTimer.textContent);
+            }
+            
+            // Reset total time display
+            const totalTimeDisplay = document.getElementById('total-time-display');
+            if (totalTimeDisplay) {
+                totalTimeDisplay.textContent = 'Total: 0h 0m';
+                totalTimeDisplay.innerHTML = 'Total: 0h 0m'; // Force innerHTML update too
+                console.log('Reset total-time-display to Total: 0h 0m');
+                console.log('Current total-time-display value:', totalTimeDisplay.textContent);
+            }
+            
+            // Update total time display from API
+            updateTotalLearningTimeDisplay().then(() => {
+                console.log('Total time display refreshed from API');
+            });
+            
+            console.log('All timer displays reset complete');
+            
+            // Force a visual refresh by hiding and showing elements
+            setTimeout(() => {
+                [learningTimerDisplay, sessionTimer, totalTimeDisplay].forEach(element => {
+                    if (element) {
+                        element.style.visibility = 'hidden';
+                        setTimeout(() => {
+                            element.style.visibility = 'visible';
+                        }, 50);
+                    }
+                });
+                console.log('Forced visual refresh completed');
+            }, 100);
+        }
+
+        async function recordLearningSession(minutes, completedSession) {
+            try {
+                const response = await fetch('/api/session/end', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        elapsed_minutes: minutes,
+                        completed_session: completedSession
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('Session recorded successfully');
+                } else {
+                    console.error('Failed to record session');
+                }
+            } catch (error) {
+                console.error('Error recording session:', error);
+            }
+        }
+
+        async function checkSessionStatus() {
+            try {
+                const response = await fetch('/api/session/status');
+                
+                if (!response.ok) {
+                    console.error('Session status request failed:', response.status, response.statusText);
+                    return;
+                }
+                
+                const sessionData = await response.json();
+                console.log('Session status data:', sessionData);
+                
+                if (sessionData.isActive) {
+                    // Calculate elapsed time
+                    const sessionStartTime_stored = new Date(sessionData.startTime);
+                    const now = new Date();
+                    const elapsedMs = now - sessionStartTime_stored;
+                    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+                    
+                    // Don't auto-resume sessions older than 5 minutes
+                    // Ask user for confirmation instead
+                    if (elapsedMinutes > 5) {
+                        const shouldResume = confirm(`You have an active learning session from ${elapsedMinutes} minutes ago. Would you like to continue it?`);
+                        
+                        if (!shouldResume) {
+                            // User declined, cancel the session without recording time
+                            try {
+                                await fetch('/api/session/cancel', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        sessionId: sessionData.sessionId
+                                    })
+                                });
+                                console.log('Previous session cancelled by user');
+                                
+                                // Refresh the total learning time display after cancelling session
+                                await updateTotalLearningTimeDisplay();
+                                await loadTimeTrackingCalendar();
+                                
+                            } catch (error) {
+                                console.error('Error cancelling previous session:', error);
+                            }
+                            return;
+                        }
+                    }
+                    
+                    // Resume session
+                    // Set session variables for resuming (header timer system)
+                    sessionStartTime = sessionStartTime_stored;
+                    currentSessionMinutes = elapsedMinutes;
+                    
+                    // Set learning timer variables for resuming (main timer system)
+                    currentLearningSessionId = sessionData.sessionId;
+                    learningStartTime = sessionStartTime_stored;
+                    isLearningInProgress = true;
+                    
+                    console.log('Resuming session. Elapsed minutes:', elapsedMinutes);
+                    
+                    // Update header UI
+                    const startBtn = document.getElementById('start-session-btn');
+                    const terminateBtn = document.getElementById('terminate-session-btn');
+                    if (startBtn) startBtn.classList.add('hidden');
+                    if (terminateBtn) terminateBtn.classList.remove('hidden');
+                    
+                    // Update main timer UI
+                    const btn = document.getElementById('learning-control-btn');
+                    btn.innerHTML = '<i data-lucide="square" class="w-5 h-5 inline mr-2"></i>Stop Learning';
+                    btn.className = 'bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors';
+                    
+                    // Start both timer systems
+                    sessionInterval = setInterval(updateSessionTimer, 1000);
+                    startLearningTimerDisplay();
+                    
+                    // Update timer displays immediately
+                    updateSessionTimer();
+                    
+                    // Re-initialize lucide icons
+                    setTimeout(() => lucide.createIcons(), 100);
+                }
+            } catch (error) {
+                console.error('Error checking session status:', error);
+                // Don't show error message on initial load, just log it
+            }
+        }
+
+        // Calendar functions
+        async function loadCalendar() {
+            try {
+                const response = await fetch('/api/calendar');
+                
+                if (!response.ok) {
+                    console.error('Calendar request failed:', response.status, response.statusText);
+                    return;
+                }
+                
+                learningData = await response.json();
+                renderCalendar();
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+                // Don't show error message on initial load, just log it
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Update month/year display
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            const calendarDays = document.getElementById('calendar-days');
+            calendarDays.innerHTML = '';
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'h-8';
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Add days of the month
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            
+            // Set learning start date - only consider days from when learning tracking began
+            // If there's learning data, use the earliest date, otherwise use today
+            let learningStartDate = today;
+            if (learningData.length > 0) {
+                const earliestDate = new Date(Math.min(...learningData.map(d => new Date(d.date))));
+                learningStartDate = earliestDate;
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                const dayDate = new Date(year, month, day);
+                const dayString = dayDate.toISOString().split('T')[0];
+                
+                dayElement.className = 'h-8 flex items-center justify-center text-sm rounded cursor-pointer transition-colors';
+                dayElement.textContent = day;
+                
+                // Find learning data for this day
+                const dayData = learningData.find(d => d.date === dayString);
+                
+                if (dayString === todayString) {
+                    // Today - special styling
+                    dayElement.classList.add('ring-2', 'ring-blue-500', 'font-bold');
+                }
+                
+                if (dayDate > today) {
+                    // Future days - gray
+                    dayElement.classList.add('bg-gray-200', 'dark:bg-gray-600', 'text-gray-500', 'dark:text-gray-400');
+                } else if (dayData && dayData.minutes_learned >= 60) {
+                    // Goal achieved - green
+                    dayElement.classList.add('bg-green-500', 'text-white', 'font-medium');
+                    dayElement.title = `${dayData.minutes_learned} minutes learned`;
+                } else if (dayDate < today && dayDate >= learningStartDate) {
+                    // Missed day (only for days after learning started) - red
+                    dayElement.classList.add('bg-red-500', 'text-white');
+                    dayElement.title = dayData ? `${dayData.minutes_learned} minutes learned (missed goal)` : 'No learning recorded';
+                } else if (dayString === todayString) {
+                    // Today but no goal achieved yet - yellow
+                    dayElement.classList.add('bg-yellow-200', 'dark:bg-yellow-600', 'text-yellow-800', 'dark:text-yellow-200');
+                    dayElement.title = dayData ? `${dayData.minutes_learned} minutes learned so far` : 'No learning yet today';
+                } else {
+                    // Days before learning started - neutral gray
+                    dayElement.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-400', 'dark:text-gray-500');
+                    dayElement.title = 'Before learning tracking started';
+                }
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        function changeCalendarMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
 
         // Load topics from server
         async function loadTopics() {
@@ -1585,22 +2309,44 @@
             const modal = document.getElementById('file-preview-modal');
             const title = document.getElementById('file-preview-title');
             const content = document.getElementById('file-preview-content');
-            
+
             title.textContent = `Preview: ${previewData.filename}`;
-            
+
+            // Add toggle for File Information visibility
+            let showFileInfo = true;
+            if (localStorage.getItem('hideFileInfo') === 'true') {
+                showFileInfo = false;
+            }
+
+            function getFileInfoToggleHTML() {
+                return `<label class="inline-flex items-center cursor-pointer ml-2">
+                    <input type="checkbox" id="toggle-file-info" class="form-checkbox h-4 w-4 text-blue-600" ${showFileInfo ? '' : 'checked'}>
+                    <span class="ml-2 text-xs text-gray-600 dark:text-gray-300">Hide File Information</span>
+                </label>`;
+            }
+
+            function getFileInfoSection(html) {
+                return `<div id="file-info-section" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-2">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
+                        ${getFileInfoToggleHTML()}
+                    </div>
+                    ${html}
+                </div>`;
+            }
+
+            let fileInfoHTML = '';
             if (previewData.type === 'xlsx') {
                 // Display XLSX preview
                 const xlsxData = previewData.xlsxData;
+                fileInfoHTML = `<p class="text-sm text-gray-600 dark:text-gray-400">
+                    File Size: <strong>${formatFileSize(previewData.fileSize)}</strong> | 
+                    Sheets: <strong>${xlsxData.totalSheets}</strong>
+                </p>`;
+                let fileInfoSection = showFileInfo ? getFileInfoSection(fileInfoHTML) : getFileInfoToggleHTML();
                 content.innerHTML = `
                     <div class="space-y-4">
-                        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                File Size: <strong>${formatFileSize(previewData.fileSize)}</strong> | 
-                                Sheets: <strong>${xlsxData.totalSheets}</strong>
-                            </p>
-                        </div>
-                        
+                        ${fileInfoSection}
                         <div>
                             <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Preview (First 3 sheets)</h4>
                             <div class="space-y-4">
@@ -1628,22 +2374,18 @@
                 // Display text file preview
                 const fileExtension = previewData.filename.split('.').pop().toLowerCase();
                 const fileType = previewData.subType || 'text';
-                
                 // Check if content should be rendered as Markdown
                 const isMarkdown = isMarkdownContent(previewData.content, previewData.filename);
-                
                 // Configure marked if available
                 configureMarked();
-                
                 let contentDisplay = '';
                 let contentTypeLabel = fileExtension.toUpperCase();
-                
                 if (isMarkdown && typeof marked !== 'undefined') {
                     // Render as Markdown
                     try {
                         const htmlContent = marked.parse(previewData.content);
                         contentDisplay = `
-                            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-6 max-h-96 overflow-y-auto preview-content-area">
+                            <div class="bg-white dark:bg-gray-800 preview-content-area">
                                 <div class="markdown-content">${htmlContent}</div>
                             </div>
                         `;
@@ -1652,7 +2394,7 @@
                         console.error('Error parsing Markdown:', error);
                         // Fallback to plain text
                         contentDisplay = `
-                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
+                            <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
                                 <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">${escapeHtml(previewData.content)}</pre>
                             </div>
                         `;
@@ -1665,30 +2407,26 @@
                     } else if (fileType === 'markdown') {
                         syntaxClass = 'language-markdown';
                     }
-                    
                     contentDisplay = `
-                        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
-                            <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</pre>
+                        <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
+                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</code></pre>
                         </div>
                     `;
                 }
-                
+                fileInfoHTML = `<p class="text-sm text-gray-600 dark:text-gray-400">
+                    File Type: <strong>${contentTypeLabel}</strong> | 
+                    File Size: <strong>${formatFileSize(previewData.fileSize)}</strong>
+                </p>
+                ${isMarkdown ? `
+                    <div class="mt-2 flex items-center space-x-2">
+                        <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">Rendered View</span>
+                        <button onclick="toggleMarkdownView(this)" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Switch to Raw</button>
+                    </div>
+                ` : ''}`;
+                let fileInfoSection = showFileInfo ? getFileInfoSection(fileInfoHTML) : getFileInfoToggleHTML();
                 content.innerHTML = `
                     <div class="space-y-4">
-                        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">File Information</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                File Type: <strong>${contentTypeLabel}</strong> | 
-                                File Size: <strong>${formatFileSize(previewData.fileSize)}</strong>
-                            </p>
-                            ${isMarkdown ? `
-                                <div class="mt-2 flex items-center space-x-2">
-                                    <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">Rendered View</span>
-                                    <button onclick="toggleMarkdownView(this)" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Switch to Raw</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
+                        ${fileInfoSection}
                         <div>
                             <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Content</h4>
                             <div id="content-display">
@@ -1696,8 +2434,8 @@
                             </div>
                             ${isMarkdown ? `
                                 <div id="raw-content" class="hidden">
-                                    <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto preview-content-area">
-                                        <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</pre>
+                                    <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
+                                        <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</code></pre>
                                     </div>
                                 </div>
                             ` : ''}
@@ -1705,7 +2443,26 @@
                     </div>
                 `;
             }
-            
+
+            // Highlight code blocks if present
+            setTimeout(() => {
+                // Highlight all code blocks in preview
+                if (window.hljs) {
+                    document.querySelectorAll('#file-preview-content pre code').forEach((block) => {
+                        window.hljs.highlightElement(block);
+                    });
+                }
+                // Add event listener for the toggle
+                const toggle = document.getElementById('toggle-file-info');
+                if (toggle) {
+                    toggle.addEventListener('change', function() {
+                        const hide = this.checked;
+                        localStorage.setItem('hideFileInfo', hide ? 'true' : 'false');
+                        showFilePreview(previewData);
+                    });
+                }
+            }, 0);
+
             modal.classList.remove('hidden');
         }
 
@@ -1970,7 +2727,6 @@
                                                 <p class="text-sm text-green-700">${sheet.taskName}</p>
                                             </div>
                                         </div>
-                                        
                                         ${sheet.structureData && sheet.structureData.length > 0 ? `
                                             <div class="bg-gray-50 rounded p-3">
                                                 <p class="text-sm font-medium text-gray-900 mb-2">Structure Data (C/D columns):</p>
@@ -2352,6 +3108,735 @@
             }
             
             // F11 for fullscreen toggle
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+    </script>
+</body>
+    <script>
+    // Timer logic
+    let timerInterval = null;
+    let timerEndTimeout = null;
+    let timerStartTime = null;
+    let timerDuration = 60 * 60; // 1 hour in seconds
+    let timerRunning = false;
+
+    function formatTimeLeft(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function showTimerNotification(message) {
+        const notif = document.getElementById('timer-notification');
+        document.getElementById('timer-message').textContent = message;
+        notif.classList.remove('hidden');
+        setTimeout(() => notif.classList.add('hidden'), 6000);
+    }
+
+    function saveSessionToDB(startTime, endTime, duration) {
+        fetch('/api/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startTime, endTime, duration })
+        });
+    }
+
+    function startLearningTimer() {
+        if (timerRunning) return;
+        timerRunning = true;
+        timerStartTime = new Date();
+        let timeLeft = timerDuration;
+        const timerDisplay = document.getElementById('timer-display');
+        timerDisplay.classList.remove('hidden');
+        timerDisplay.textContent = formatTimeLeft(timeLeft);
+
+        // Save session start to DB (endTime/duration null for now)
+        saveSessionToDB(timerStartTime.toISOString(), null, null);
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = formatTimeLeft(timeLeft);
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }, 1000);
+
+        timerEndTimeout = setTimeout(() => {
+            timerRunning = false;
+            timerDisplay.classList.add('hidden');
+            showTimerNotification('Session expired!');
+            // Save session end to DB
+            const endTime = new Date();
+            saveSessionToDB(timerStartTime.toISOString(), endTime.toISOString(), timerDuration);
+        }, timerDuration * 1000);
+    }
+
+    // ========================================
+    // SIMPLE TIME TRACKING IMPLEMENTATION
+    // ========================================
+    
+    let currentLearningSessionId = null;
+    let learningStartTime = null;
+    let learningTimerInterval = null;
+    let isLearningInProgress = false;
+    let currentLearningCalendarDate = new Date();
+    
+    // Toggle learning timer between start and stop
+    async function toggleLearningTimer() {
+        if (isLearningInProgress) {
+            await stopLearningTimer();
+        } else {
+            await startLearningTimer();
+        }
+    }
+    
+    // Start learning timer
+    async function startLearningTimer() {
+        try {
+            console.log('Starting learning timer - making fetch request...');
+            const response = await fetch('/api/time-tracking/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Fetch response received:', response.status, response.ok);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Response data:', data);
+            
+            // Set learning timer state
+            currentLearningSessionId = data.sessionId;
+            learningStartTime = new Date(data.startTime);
+            isLearningInProgress = true;
+            
+            // Set header session state
+            sessionStartTime = learningStartTime;
+            currentSessionMinutes = 0;
+            
+            // Update main timer button
+            const btn = document.getElementById('learning-control-btn');
+            if (!btn) {
+                throw new Error('learning-control-btn element not found');
+            }
+            btn.innerHTML = '<i data-lucide="square" class="w-5 h-5 inline mr-2"></i>Stop Learning';
+            btn.className = 'bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors';
+            
+            // Update header session buttons
+            const startBtn = document.getElementById('start-session-btn');
+            const terminateBtn = document.getElementById('terminate-session-btn');
+            if (!startBtn || !terminateBtn) {
+                throw new Error('Session control buttons not found');
+            }
+            startBtn.classList.add('hidden');
+            terminateBtn.classList.remove('hidden');
+            
+            // Start both timer displays
+            startLearningTimerDisplay();
+            sessionInterval = setInterval(updateSessionTimer, 1000);
+            
+            // Re-initialize lucide icons
+            setTimeout(() => lucide.createIcons(), 100);
+            
+            console.log('Learning session started:', data);
+            
+        } catch (error) {
+            console.error('Error starting learning session:', error);
+            console.error('Error details:', error.message, error.stack);
+            alert('Failed to start learning session: ' + error.message + '. Please try again.');
+        }
+    }
+    
+    // Stop learning timer
+    async function stopLearningTimer() {
+        if (!currentLearningSessionId) {
+            console.error('No active session to stop');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/time-tracking/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sessionId: currentLearningSessionId
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Reset learning timer state
+            currentLearningSessionId = null;
+            learningStartTime = null;
+            isLearningInProgress = false;
+            
+            // Reset header session state
+            sessionStartTime = null;
+            currentSessionMinutes = 0;
+            if (sessionInterval) {
+                clearInterval(sessionInterval);
+                sessionInterval = null;
+            }
+            
+            // Stop timer display
+            stopLearningTimerDisplay();
+            
+            // Update main timer button
+            const btn = document.getElementById('learning-control-btn');
+            btn.innerHTML = '<i data-lucide="play" class="w-5 h-5 inline mr-2"></i>Start Learning';
+            btn.className = 'bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors';
+            
+            // Update header session buttons
+            const startBtn = document.getElementById('start-session-btn');
+            const terminateBtn = document.getElementById('terminate-session-btn');
+            if (startBtn) startBtn.classList.remove('hidden');
+            if (terminateBtn) terminateBtn.classList.add('hidden');
+            
+            // Reset session timer display
+            document.getElementById('session-timer').textContent = '00:00:00';
+            
+            // Update displays
+            await updateTotalLearningTimeDisplay();
+            await loadTimeTrackingCalendar();
+            
+            // Re-initialize lucide icons
+            setTimeout(() => lucide.createIcons(), 100);
+            
+            console.log('Learning session stopped:', data);
+            console.log(`Session duration: ${Math.floor(data.duration / 60)} minutes ${data.duration % 60} seconds`);
+            
+        } catch (error) {
+            console.error('Error stopping learning session:', error);
+            alert('Failed to stop learning session. Please try again.');
+        }
+    }
+    
+    // Start the timer display
+    function startLearningTimerDisplay() {
+        if (learningTimerInterval) {
+            clearInterval(learningTimerInterval);
+        }
+        
+        learningTimerInterval = setInterval(() => {
+            if (learningStartTime) {
+                const now = new Date();
+                const elapsed = Math.floor((now - learningStartTime) / 1000);
+                updateLearningTimerDisplay(elapsed);
+            }
+        }, 1000);
+    }
+    
+    // Stop the timer display
+    function stopLearningTimerDisplay() {
+        if (learningTimerInterval) {
+            clearInterval(learningTimerInterval);
+            learningTimerInterval = null;
+        }
+        
+        // Reset display
+        document.getElementById('learning-timer-display').textContent = '00:00:00';
+    }
+    
+    // Update the timer display
+    function updateLearningTimerDisplay(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        document.getElementById('learning-timer-display').textContent = timeStr;
+    }
+    
+    // Update total learning time display
+    async function updateTotalLearningTimeDisplay() {
+        try {
+            const response = await fetch('/api/time-tracking/today');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            const totalTimeDisplay = document.getElementById('total-time-display');
+            console.log('Total time display element:', totalTimeDisplay);
+            if (totalTimeDisplay) {
+                const hours = Math.floor(data.totalMinutes / 60);
+                const minutes = Math.floor(data.totalMinutes % 60);
+                const newText = `Today: ${hours}h ${minutes}m`;
+                console.log('Updating total time display to:', newText);
+                totalTimeDisplay.textContent = newText;
+                console.log('Display updated. Current text:', totalTimeDisplay.textContent);
+            } else {
+                console.error('total-time-display element not found!');
+            }
+            
+            console.log('Today\'s learning time:', data);
+            
+        } catch (error) {
+            console.error('Error updating total time display:', error);
+        }
+    }
+    
+    // Load learning calendar
+    async function loadLearningCalendar() {
+        try {
+            const response = await fetch('/api/calendar');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const calendarData = await response.json();
+            
+            // Update calendar display
+            generateLearningCalendar(calendarData);
+            
+            console.log('Learning calendar data loaded:', calendarData);
+            
+        } catch (error) {
+            console.error('Error loading learning calendar:', error);
+        }
+    }
+    
+    // Generate learning calendar
+    function generateLearningCalendar(timeData) {
+        const calendarDays = document.getElementById('learning-calendar-days');
+        if (!calendarDays) return;
+        
+        // Clear existing content
+        calendarDays.innerHTML = '';
+        
+        const year = currentLearningCalendarDate.getFullYear();
+        const month = currentLearningCalendarDate.getMonth();
+        
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+        
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'h-8';
+            calendarDays.appendChild(emptyDay);
+        }
+        
+        // Add days of the month
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement('div');
+            const dayDate = new Date(year, month, day);
+            const dayString = dayDate.toISOString().split('T')[0];
+            
+            dayElement.className = 'h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700';
+            dayElement.textContent = day;
+            
+            // Check if this day has learning data
+            const dayData = timeData[dayString];
+            
+            if (dayData && dayData.hasActivity) {
+                // Day with learning activity
+                if (dayData.totalMinutes >= 60) {
+                    // Good day (60+ minutes) - green
+                    dayElement.classList.add('bg-green-500', 'text-white');
+                    dayElement.title = `${dayData.totalMinutes} minutes learned (${dayData.sessions} sessions)`;
+                } else {
+                    // Some learning but less than 60 minutes - yellow
+                    dayElement.classList.add('bg-yellow-400', 'text-white');
+                    dayElement.title = `${dayData.totalMinutes} minutes learned (${dayData.sessions} sessions)`;
+                }
+            } else if (dayString === todayString) {
+                // Today but no learning yet - light blue
+                dayElement.classList.add('bg-blue-200', 'dark:bg-blue-600', 'text-blue-800', 'dark:text-blue-200');
+                dayElement.title = 'Today - no learning recorded yet';
+            } else {
+                // No learning data - default gray
+                dayElement.classList.add('text-gray-600', 'dark:text-gray-400');
+                dayElement.title = 'No learning recorded';
+            }
+            
+            calendarDays.appendChild(dayElement);
+        }
+        
+        // Update month/year display
+        const monthYearElement = document.getElementById('learning-calendar-month-year');
+        if (monthYearElement) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            monthYearElement.textContent = `${monthNames[month]} ${year}`;
+        }
+    }
+    
+    // Change learning calendar month
+    function changeLearningCalendarMonth(direction) {
+        currentLearningCalendarDate.setMonth(currentLearningCalendarDate.getMonth() + direction);
+        loadTimeTrackingCalendar();
+    }
+    
+    // Initialize time tracking on page load
+    async function initializeLearningTimeTracking() {
+        await updateTotalLearningTimeDisplay();
+        await loadTimeTrackingCalendar();
+    }
+    
+    // ========================================
+    // END SIMPLE TIME TRACKING IMPLEMENTATION
+    // ========================================
+
+    // ========================================
+    // NEW TIME TRACKING IMPLEMENTATION
+    // ========================================
+    
+    let currentSessionId = null;
+    let trackingStartTime = null;
+    let trackingInterval = null;
+    let isLearningActive = false;
+    
+    // Toggle between start and stop learning
+    async function toggleLearningSession() {
+        if (isLearningActive) {
+            await stopLearning();
+        } else {
+            await startLearning();
+        }
+    }
+    
+    // Start a new learning session
+    async function startLearning() {
+        try {
+            const response = await fetch('/api/time-tracking/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            currentSessionId = data.sessionId;
+            trackingStartTime = new Date(data.startTime);
+            isLearningActive = true;
+            
+            // Update button appearance
+            const btn = document.getElementById('start-learning-btn');
+            btn.innerHTML = '<i data-lucide="square" class="w-5 h-5 inline mr-2"></i>Stop Learning';
+            btn.className = 'bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold transition-colors';
+            
+            // Show timer display
+            const timerDisplay = document.getElementById('timer-display');
+            timerDisplay.classList.remove('hidden');
+            
+            // Start the timer
+            startTimer();
+            
+            // Update total time display
+            await updateTotalTimeDisplay();
+            
+            console.log('Learning session started:', data);
+            
+        } catch (error) {
+            console.error('Error starting learning session:', error);
+            alert('Failed to start learning session. Please try again.');
+        }
+    }
+    
+    // Stop the current learning session
+    async function stopLearning() {
+        if (!currentSessionId) {
+            console.error('No active session to stop');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/time-tracking/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sessionId: currentSessionId
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Reset state
+            currentSessionId = null;
+            trackingStartTime = null;
+            isLearningActive = false;
+            
+            // Stop timer
+            stopTimer();
+            
+            // Update button appearance
+            const btn = document.getElementById('start-learning-btn');
+            btn.innerHTML = '<i data-lucide="timer" class="w-5 h-5 inline mr-2"></i>Start Learning';
+            btn.className = 'bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-semibold transition-colors';
+            
+            // Hide timer display
+            const timerDisplay = document.getElementById('timer-display');
+            timerDisplay.classList.add('hidden');
+            
+            // Update total time display and calendar
+            await updateTotalTimeDisplay();
+            await loadTimeTrackingCalendar();
+            
+            console.log('Learning session stopped:', data);
+            console.log(`Session duration: ${Math.floor(data.duration / 60)} minutes ${data.duration % 60} seconds`);
+            
+        } catch (error) {
+            console.error('Error stopping learning session:', error);
+            alert('Failed to stop learning session. Please try again.');
+        }
+    }
+    
+    // Start the visual timer
+    function startTimer() {
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+        }
+        
+        trackingInterval = setInterval(() => {
+            if (trackingStartTime) {
+                const now = new Date();
+                const elapsed = Math.floor((now - trackingStartTime) / 1000);
+                updateTimerDisplay(elapsed);
+            }
+        }, 1000);
+    }
+    
+    // Stop the visual timer
+    function stopTimer() {
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+        }
+    }
+    
+    // Update the timer display
+    function updateTimerDisplay(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        
+        const timerText = document.getElementById('timer-text');
+        if (timerText) {
+            timerText.textContent = timeString;
+        }
+    }
+    
+    // Update total time display in the header
+    async function updateTotalTimeDisplay() {
+        try {
+            const response = await fetch('/api/time-tracking/today');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update the session timer in header if it exists
+            const sessionTimer = document.getElementById('session-timer');
+            if (sessionTimer) {
+                const hours = Math.floor(data.totalMinutes / 60);
+                const minutes = Math.floor(data.totalMinutes % 60);
+                sessionTimer.textContent = `${hours}h ${minutes}m today`;
+            }
+            
+            console.log('Today\'s learning time:', data);
+            
+        } catch (error) {
+            console.error('Error updating total time display:', error);
+        }
+    }
+    
+    // Load calendar with time tracking data
+    async function loadTimeTrackingCalendar() {
+        try {
+            const response = await fetch('/api/time-tracking/calendar');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            const calendarData = result.data || {};
+            
+            // Update calendar display
+            generateCalendarWithTimeData(calendarData);
+            
+            console.log('Time tracking calendar data loaded:', calendarData);
+            
+        } catch (error) {
+            console.error('Error loading time tracking calendar:', error);
+        }
+    }
+    
+    // Generate calendar with time tracking data
+    function generateCalendarWithTimeData(timeData) {
+        console.log('generateCalendarWithTimeData called with:', timeData);
+        
+        const calendarDays = document.getElementById('calendar-days');
+        if (!calendarDays) {
+            console.error('calendar-days element not found!');
+            return;
+        }
+        
+        // Clear existing content
+        calendarDays.innerHTML = '';
+        
+        const year = currentTimeTrackingCalendarDate.getFullYear();
+        const month = currentTimeTrackingCalendarDate.getMonth();
+        
+        console.log('Generating calendar for:', year, month + 1);
+        
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+        
+        // Add empty cells for days before month starts
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'h-8';
+            calendarDays.appendChild(emptyDay);
+        }
+        
+        // Add days of month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement('div');
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayData = timeData[dateString];
+            
+            dayElement.className = 'h-8 flex items-center justify-center text-sm cursor-default relative';
+            dayElement.textContent = day;
+            
+            // Debug today's date specifically
+            const todayDate = new Date();
+            if (year === todayDate.getFullYear() && month === todayDate.getMonth() && day === todayDate.getDate()) {
+                console.log(`Today (${dateString}) data:`, dayData);
+            }
+            
+            if (dayData && dayData.hasActivity) {
+                console.log(`Day ${day} (${dateString}) has activity:`, dayData);
+                
+                // Color based on learning time
+                if (dayData.totalMinutes >= 60) {
+                    dayElement.className += ' bg-green-500 text-white font-semibold rounded';
+                    console.log(`Applied dark green to day ${day}`);
+                } else if (dayData.totalMinutes >= 30) {
+                    dayElement.className += ' bg-green-300 text-green-800 font-medium rounded';
+                    console.log(`Applied medium green to day ${day}`);
+                } else if (dayData.totalSeconds > 0) {
+                    // Show light green for any activity, even under 1 minute
+                    dayElement.className += ' bg-green-100 text-green-700 rounded';
+                    console.log(`Applied light green to day ${day}`);
+                }
+                
+                // Add tooltip with time info
+                const displayTime = dayData.totalMinutes > 0 
+                    ? `${dayData.totalMinutes} minutes` 
+                    : `${dayData.totalSeconds} seconds`;
+                dayElement.title = `${displayTime} learned (${dayData.sessions} sessions)`;
+            } else {
+                dayElement.className += ' text-gray-400 dark:text-gray-600';
+            }
+            
+            // Highlight today
+            const today = new Date();
+            if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                dayElement.className += ' ring-2 ring-blue-500';
+            }
+            
+            calendarDays.appendChild(dayElement);
+        }
+        
+        // Update month/year display
+        const monthYearElement = document.getElementById('calendar-month-year');
+        if (monthYearElement) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            monthYearElement.textContent = `${monthNames[month]} ${year}`;
+        }
+    }
+    
+    // Calendar navigation functions
+    function changeTimeTrackingCalendarMonth(direction) {
+        currentTimeTrackingCalendarDate.setMonth(currentTimeTrackingCalendarDate.getMonth() + direction);
+        loadTimeTrackingCalendar();
+    }
+    
+    // Initialize time tracking on page load
+    async function initializeTimeTracking() {
+        await updateTotalTimeDisplay();
+        await loadTimeTrackingCalendar();
+    }
+    
+    // ========================================
+    // END NEW TIME TRACKING IMPLEMENTATION
+    // ========================================
+
+    </script>
+
+    <!-- Time Tracker Components -->
+    <script src="./session-state-manager.js"></script>
+    <script src="./time-tracker-component.js"></script>
+    
+    <script>
+        // Initialize Time Tracker Component
+        let timeTracker;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the time tracker component without container (uses existing elements)
+            timeTracker = new TimeTrackerComponent();
+            
+            // Initialize existing time tracking functionality
+            if (typeof initializeTimeTracking === 'function') {
+                initializeTimeTracking();
+            }
+        });
+        
+        // Keyboard shortcut for time tracking (Ctrl+Shift+L)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                if (timeTracker) {
+                    timeTracker.handleButtonClick();
+                }
+            }
+        });
+        
+        // Handle fullscreen toggle
+        document.addEventListener('keydown', function(e) {
             if (e.key === 'F11') {
                 e.preventDefault();
                 toggleFullscreen();

@@ -34,6 +34,16 @@ class DatabaseService {
                 }
             });
 
+            this.db.run(`CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                start_time DATETIME NOT NULL,
+                end_time DATETIME,
+                duration INTEGER,
+                elapsed_minutes INTEGER,
+                topic_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
             this.db.run(`CREATE TABLE IF NOT EXISTS progress (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 total_topics INTEGER,
@@ -51,6 +61,111 @@ class DatabaseService {
                 earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 type TEXT
             )`);
+        });
+    }
+
+    // Insert a new session (start_time, end_time, duration in seconds)
+    insertSession(startTime, endTime, duration, callback) {
+        this.db.run(
+            'INSERT INTO sessions (start_time, end_time, duration) VALUES (?, ?, ?)',
+            [startTime, endTime, duration],
+            callback
+        );
+    }
+
+    // Start a new learning session
+    startLearningSession(callback) {
+        const startTime = new Date().toISOString();
+        this.db.run(
+            'INSERT INTO sessions (start_time) VALUES (?)',
+            [startTime],
+            function(err) {
+                if (err) return callback(err);
+                callback(null, { sessionId: this.lastID, startTime });
+            }
+        );
+    }
+
+    // Stop a learning session
+    stopLearningSession(sessionId, callback) {
+        const endTime = new Date().toISOString();
+        
+        this.db.get('SELECT start_time FROM sessions WHERE id = ?', [sessionId], (err, row) => {
+            if (err) return callback(err);
+            if (!row) return callback(new Error('Session not found'));
+            
+            const startTime = new Date(row.start_time);
+            const endTimeDate = new Date(endTime);
+            const elapsedSeconds = Math.floor((endTimeDate - startTime) / 1000); // duration in seconds
+            const elapsedMinutes = Math.floor(elapsedSeconds / 60); // duration in minutes for storage
+            
+            this.db.run(
+                'UPDATE sessions SET end_time = ?, elapsed_minutes = ? WHERE id = ?',
+                [endTime, elapsedMinutes, sessionId],
+                function(err) {
+                    if (err) return callback(err);
+                    callback(null, { sessionId, endTime, duration: elapsedSeconds }); // return duration in seconds
+                }
+            );
+        });
+    }
+
+    // Get active sessions (sessions without end_time)
+    getActiveSessions(callback) {
+        this.db.all('SELECT * FROM sessions WHERE end_time IS NULL ORDER BY start_time DESC', callback);
+    }
+
+    // Get the most recent active session
+    getCurrentActiveSession(callback) {
+        this.db.get('SELECT * FROM sessions WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1', callback);
+    }
+
+    // Get total learning time statistics
+    getTotalLearningTime(callback) {
+        this.db.get(`
+            SELECT 
+                COUNT(*) as totalSessions,
+                SUM(CASE WHEN status = 'completed' AND duration_seconds IS NOT NULL THEN duration_seconds ELSE 0 END) as totalSeconds,
+                SUM(CASE WHEN status = 'completed' AND duration_seconds IS NOT NULL THEN ROUND(duration_seconds / 60.0, 2) ELSE 0 END) as totalMinutes,
+                SUM(CASE WHEN status = 'completed' AND duration_seconds IS NOT NULL THEN duration_seconds / 3600.0 ELSE 0 END) as totalHours
+            FROM time_tracking_sessions
+            WHERE status = 'completed'
+        `, (err, row) => {
+            if (err) return callback(err);
+            callback(null, {
+                totalSessions: row.totalSessions || 0,
+                totalSeconds: row.totalSeconds || 0,
+                totalMinutes: Math.round((row.totalMinutes || 0) * 100) / 100,
+                totalHours: Math.round((row.totalHours || 0) * 100) / 100
+            });
+        });
+    }
+
+    // Get calendar data for time tracking
+    getLearningCalendarData(callback) {
+        this.db.all(`
+            SELECT 
+                date(start_time) as date,
+                COUNT(*) as sessions,
+                SUM(CASE WHEN elapsed_minutes IS NOT NULL THEN elapsed_minutes * 60 ELSE 0 END) as totalSeconds
+            FROM sessions 
+            WHERE start_time IS NOT NULL
+            GROUP BY date(start_time)
+            ORDER BY date DESC
+        `, (err, rows) => {
+            if (err) return callback(err);
+            
+            const calendarData = {};
+            rows.forEach(row => {
+                calendarData[row.date] = {
+                    sessions: row.sessions,
+                    totalSeconds: row.totalSeconds,
+                    totalMinutes: Math.round(row.totalSeconds / 60),
+                    hasActivity: row.totalSeconds > 0
+                };
+            });
+            
+            callback(null, calendarData);
         });
     }
 
