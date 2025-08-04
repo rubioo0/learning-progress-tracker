@@ -7,10 +7,10 @@ module.exports = {
     
     // File upload configuration
     UPLOAD_DIRECTORY: 'uploads/',
-    MAX_PREVIEW_FILE_SIZE: 200 * 1024, // 200KB
+    MAX_PREVIEW_FILE_SIZE: 200 * 1024,
     
     // Excel processing configuration
-    MAX_PREVIEW_SHEETS: 5,
+    MAX_PREVIEW_SHEETS: 15,
     
     // Achievement system
     POINTS_PER_COMPLETION: 10,
