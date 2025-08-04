@@ -213,6 +213,97 @@
         .dark .status-not-started {
             border-left-color: #6B7280;
         }
+
+        .status-not-started { 
+            background-color: #f3f4f6; 
+            border-color: #d1d5db; 
+            color: #374151; 
+            border-left: 4px solid #9CA3AF;
+        }
+        .status-in-progress { 
+            background-color: #fef3c7; 
+            border-color: #fcd34d; 
+            color: #92400e; 
+            border-left: 4px solid #F59E0B;
+        }
+        .status-completed { 
+            background-color: #d1fae5; 
+            border-color: #86efac; 
+            color: #065f46; 
+            border-left: 4px solid #10B981;
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .topic-card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .topic-details {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .topic-chevron {
+            transition: transform 0.2s ease;
+        }
+        
+        /* Dark theme specific styles */
+        .dark .status-not-started {
+            border-left-color: #6B7280;
+        }
+        
+        .dark .status-in-progress {
+            border-left-color: #FBBF24;
+        }
+        
+        .dark .status-completed {
+            border-left-color: #34D399;
+        }
+        
+        /* Smooth transitions for theme switching */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+        
+        /* Custom scrollbar for dark theme */
+        .dark ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #6B7280;
+            border-radius: 4px;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
+        }
+
+        .achievement-popup {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
         
         .dark .status-in-progress {
             border-left-color: #FBBF24;

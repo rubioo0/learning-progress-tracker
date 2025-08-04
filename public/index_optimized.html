@@ -103,39 +103,7 @@
             }
         }
     </style>
-    <script>
-        // Theme management - Initialize before page loads
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                document.documentElement.classList.add('dark');
-            }
-        }
-        
-        // Theme management functions
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.classList.contains('dark');
-            
-            if (isDark) {
-                html.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            
-            // Update lucide icons after theme change
-            setTimeout(() => {
-                lucide.createIcons();
-            }, 100);
-        }
-        
-        // Initialize theme immediately
-        initTheme();
-    </script>
+
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
     <!-- Header -->
