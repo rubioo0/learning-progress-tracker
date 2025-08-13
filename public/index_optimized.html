@@ -965,6 +965,12 @@
             }
             
             modal.classList.remove('hidden');
+            
+            // Reset scroll position to top for better user experience
+            const modalContent = modal.querySelector('.max-h-\\[80vh\\]');
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
         }
 
         // Function to close file preview modal
@@ -1139,6 +1145,13 @@
             `;
             
             document.getElementById('excel-preview-modal').classList.remove('hidden');
+            
+            // Reset scroll position to top for better user experience
+            const modal = document.getElementById('excel-preview-modal');
+            const modalContent = modal.querySelector('.max-h-\\[80vh\\]');
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
         }
 
         function closeExcelPreview() {
