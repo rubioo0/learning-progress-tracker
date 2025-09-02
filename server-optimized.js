@@ -6,13 +6,15 @@ const fs = require('fs');
 
 // Import custom modules
 const config = require('./config/app-config');
-const DatabaseService = require('./services/database');
+const DatabaseService = require('./services/database-unified');
+const FileStorageService = require('./services/file-storage');
 const helpers = require('./utils/helpers');
 const TimeTrackerService = require('./services/time-tracker');
 const { errorHandler } = require('./utils/error-handler');
 
 const app = express();
 const dbService = new DatabaseService();
+const fileStorage = new FileStorageService();
 const timeTracker = new TimeTrackerService(dbService.db);
 
 // Middleware
@@ -23,8 +25,8 @@ app.use(express.json());
 // Add rate limiting middleware for time tracking endpoints
 app.use('/api/learning-sessions', errorHandler.rateLimitMiddleware());
 
-// Configure multer for file uploads
-const upload = multer({ dest: config.UPLOAD_DIRECTORY });
+// Configure multer for file uploads using the new file storage service
+const upload = fileStorage.getMulterInstance();
 
 // Routes
 
@@ -78,16 +80,28 @@ app.post('/api/topics/:id/attachment', upload.single('attachment'), (req, res) =
         return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    const { path: attachmentPath, originalname, filename } = req.file;
-    console.log(`File uploaded: ${originalname} -> ${filename} at ${attachmentPath}`);
+    // Get file info - works for both local and cloud storage
+    const filename = req.file.filename || req.file.originalname;
+    const originalname = req.file.originalname;
+    const attachmentPath = req.file.path;
+    const attachmentUrl = fileStorage.getFileUrl(req.file);
     
-    dbService.updateTopicAttachment(id, filename, originalname, attachmentPath, (err) => {
+    console.log(`File uploaded: ${originalname} -> ${filename}`);
+    console.log(`Storage path: ${attachmentPath}`);
+    console.log(`Access URL: ${attachmentUrl}`);
+    
+    dbService.updateTopicAttachment(id, filename, originalname, attachmentPath, attachmentUrl, (err) => {
         if (err) {
             console.error('Database error during file attachment:', err);
             return helpers.handleDatabaseError(res, err);
         }
         console.log(`File attached successfully to topic ${id}`);
-        res.json({ message: 'File attached successfully', filename: originalname });
+        res.json({ 
+            message: 'File attached successfully', 
+            filename: originalname,
+            url: attachmentUrl,
+            cloudStorage: fileStorage.cloudinaryEnabled
+        });
     });
 });
 
@@ -200,15 +214,19 @@ app.get('/api/topics/:id/attachment', (req, res) => {
     dbService.getTopicAttachment(id, (err, row) => {
         if (err) return helpers.handleDatabaseError(res, err);
         
-        if (!row || !row.attachment_path) {
-            // Always return JSON error
+        if (!row || (!row.attachment_path && !row.attachment_url)) {
             return res.status(404).json({ error: 'No attachment found for this topic' });
         }
         
+        // If we have a cloud URL, redirect to it
+        if (row.attachment_url) {
+            return res.redirect(row.attachment_url);
+        }
+        
+        // Otherwise, serve local file
         const filePath = path.join(__dirname, row.attachment_path);
         
         if (!fs.existsSync(filePath)) {
-            // Always return JSON error
             return res.status(404).json({ error: 'Attachment file not found on disk' });
         }
         
@@ -216,14 +234,18 @@ app.get('/api/topics/:id/attachment', (req, res) => {
     });
 });
 
-app.delete('/api/topics/:id/attachment', (req, res) => {
+app.delete('/api/topics/:id/attachment', async (req, res) => {
     const { id } = req.params;
     
-    dbService.getTopicAttachment(id, (err, row) => {
+    dbService.getTopicAttachment(id, async (err, row) => {
         if (err) return helpers.handleDatabaseError(res, err);
         
-        if (row && row.attachment_path) {
-            helpers.cleanupFile(path.join(__dirname, row.attachment_path));
+        if (row && (row.attachment_path || row.attachment_url)) {
+            // Delete file from storage (both local and cloud)
+            await fileStorage.deleteFile(
+                row.attachment_path ? path.join(__dirname, row.attachment_path) : null,
+                row.attachment_url
+            );
         }
         
         dbService.removeTopicAttachment(id, (err) => {

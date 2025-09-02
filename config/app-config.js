@@ -4,6 +4,7 @@ module.exports = {
     
     // Database configuration
     DATABASE_PATH: './learning_progress.db',
+    DATABASE_URL: process.env.DATABASE_URL, // PostgreSQL connection string for production
     
     // File upload configuration
     UPLOAD_DIRECTORY: 'uploads/',
