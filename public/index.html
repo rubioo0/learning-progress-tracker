@@ -910,8 +910,8 @@
             padding: 0 !important;
         }
         
-        .modal-fullscreen .bg-white,
-        .modal-fullscreen .dark\:bg-gray-800 {
+        .modal-fullscreen > .bg-white,
+        .modal-fullscreen > .dark\:bg-gray-800 {
             border-radius: 0 !important;
             box-shadow: none !important;
             border: none !important;
@@ -934,6 +934,46 @@
         .modal-fullscreen .preview-content-area {
             max-height: calc(100vh - 250px) !important;
             height: calc(100vh - 250px) !important;
+        }
+
+        /* File preview immersive fullscreen (no background bleed) */
+        #file-preview-modal.modal-fullscreen {
+            padding: 0 !important;
+            align-items: stretch !important;
+            justify-content: stretch !important;
+            background: #FFFFFF !important;
+            backdrop-filter: none !important;
+        }
+
+        .dark #file-preview-modal.modal-fullscreen {
+            background: #111827 !important;
+        }
+
+        #file-preview-modal.modal-fullscreen > .bg-white,
+        #file-preview-modal.modal-fullscreen > .dark\:bg-gray-800 {
+            width: 100vw !important;
+            max-width: none !important;
+            max-height: none !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        #file-preview-modal.modal-fullscreen .preview-content-area {
+            max-height: none !important;
+            height: auto !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            padding: 1.25rem 1rem !important;
+        }
+
+        #file-preview-modal.modal-fullscreen .markdown-content {
+            max-width: 70ch !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border-left: none !important;
+            border-right: none !important;
         }
         
     </style>
@@ -5085,15 +5125,26 @@
         // Function to toggle modal fullscreen
         function toggleModalFullscreen(modalId) {
             const modal = document.getElementById(modalId);
-            const modalContent = modal.querySelector('.bg-white, .dark\\:bg-gray-800');
+            if (!modal) {
+                return;
+            }
+            const modalContent = modal.querySelector(':scope > .bg-white, :scope > .dark\\:bg-gray-800');
             const fullscreenButton = modal.querySelector('[onclick*="toggleModalFullscreen"]');
-            const fullscreenIcon = fullscreenButton.querySelector('[data-lucide]');
+            const fullscreenIcon = fullscreenButton ? fullscreenButton.querySelector('[data-lucide]') : null;
+            const isFilePreviewModal = modalId === 'file-preview-modal';
+
+            if (!modalContent || !fullscreenButton || !fullscreenIcon) {
+                return;
+            }
+
+            if (!modal.dataset.originalModalContentClasses) {
+                modal.dataset.originalModalContentClasses = modalContent.className;
+            }
             
             if (modal.classList.contains('modal-fullscreen')) {
                 // Exit modal fullscreen
                 modal.classList.remove('modal-fullscreen');
-                modalContent.classList.remove('max-w-none', 'w-full', 'h-full', 'm-0');
-                modalContent.classList.add('max-w-4xl', 'max-h-[80vh]');
+                modalContent.className = modal.dataset.originalModalContentClasses;
                 fullscreenIcon.setAttribute('data-lucide', 'maximize');
                 fullscreenButton.title = 'Toggle fullscreen';
                 
@@ -5106,17 +5157,28 @@
             } else {
                 // Enter modal fullscreen
                 modal.classList.add('modal-fullscreen');
+                Array.from(modalContent.classList).forEach(className => {
+                    if (className.startsWith('max-w-') || className.startsWith('max-h-')) {
+                        modalContent.classList.remove(className);
+                    }
+                });
                 modalContent.classList.add('max-w-none', 'w-full', 'h-full', 'm-0');
-                modalContent.classList.remove('max-w-4xl', 'max-h-[80vh]');
                 fullscreenIcon.setAttribute('data-lucide', 'minimize');
                 fullscreenButton.title = 'Exit fullscreen';
                 
                 // Expand preview content areas to use available space
                 const previewAreas = modal.querySelectorAll('.preview-content-area');
-                previewAreas.forEach(area => {
-                    area.style.maxHeight = 'calc(100vh - 250px)';
-                    area.style.height = 'calc(100vh - 250px)';
-                });
+                if (isFilePreviewModal) {
+                    previewAreas.forEach(area => {
+                        area.style.maxHeight = 'none';
+                        area.style.height = 'auto';
+                    });
+                } else {
+                    previewAreas.forEach(area => {
+                        area.style.maxHeight = 'calc(100vh - 250px)';
+                        area.style.height = 'calc(100vh - 250px)';
+                    });
+                }
             }
             
             // Re-initialize lucide icons
