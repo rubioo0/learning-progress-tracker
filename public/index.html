@@ -556,6 +556,8 @@
         .markdown-content .code-block-wrapper pre.code-pan-enabled {
             cursor: grab;
             touch-action: none;
+            max-height: min(60vh, 42rem);
+            overflow: auto;
         }
 
         .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging,
