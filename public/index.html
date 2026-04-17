@@ -555,6 +555,7 @@
 
         .markdown-content .code-block-wrapper pre.code-pan-enabled {
             cursor: grab;
+            touch-action: none;
         }
 
         .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging,
@@ -3732,7 +3733,7 @@
             setTimeout(() => {
                 const mcDiv = document.querySelector('#ai-content-display .markdown-content');
                 postProcessCodeBlocks(mcDiv);
-                enableCodeBlockDragPan(mcDiv);
+                enableCodeBlockDragPan(document.getElementById('file-preview-content'));
                 if (window.hljs) {
                     document.querySelectorAll('#file-preview-content .code-block-wrapper pre code').forEach((block) => {
                         window.hljs.highlightElement(block);
@@ -4666,49 +4667,70 @@
         function enableCodeBlockDragPan(container) {
             if (!container) return;
 
-            container.querySelectorAll('.code-block-wrapper pre').forEach((pre) => {
+            const preBlocks = Array.from(container.querySelectorAll('pre')).filter((pre) => {
+                return pre.querySelector('code') !== null;
+            });
+
+            preBlocks.forEach((pre) => {
                 if (pre.dataset.dragPanBound === 'true') return;
 
                 pre.dataset.dragPanBound = 'true';
                 pre.classList.add('code-pan-enabled');
 
                 let isDragging = false;
+                let pointerId = null;
                 let startX = 0;
                 let startY = 0;
                 let startScrollLeft = 0;
                 let startScrollTop = 0;
 
-                const onMouseMove = (event) => {
-                    if (!isDragging) return;
+                const onPointerMove = (event) => {
+                    if (!isDragging || event.pointerId !== pointerId) return;
 
                     pre.scrollLeft = startScrollLeft - (event.clientX - startX);
                     pre.scrollTop = startScrollTop - (event.clientY - startY);
                     event.preventDefault();
                 };
 
-                const stopDragging = () => {
-                    if (!isDragging) return;
+                const stopDragging = (event) => {
+                    if (!isDragging || event.pointerId !== pointerId) return;
 
                     isDragging = false;
+                    pointerId = null;
                     pre.classList.remove('dragging');
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', stopDragging);
+
+                    try {
+                        if (typeof pre.releasePointerCapture === 'function') {
+                            pre.releasePointerCapture(event.pointerId);
+                        }
+                    } catch (e) {
+                        // Ignore release errors when pointer capture is already cleared.
+                    }
+
+                    pre.removeEventListener('pointermove', onPointerMove);
+                    pre.removeEventListener('pointerup', stopDragging);
+                    pre.removeEventListener('pointercancel', stopDragging);
                 };
 
-                pre.addEventListener('mousedown', (event) => {
-                    if (event.button !== 0) return;
+                pre.addEventListener('pointerdown', (event) => {
+                    if (event.pointerType !== 'touch' && event.button !== 0) return;
                     if (pre.scrollWidth <= pre.clientWidth && pre.scrollHeight <= pre.clientHeight) return;
                     if (window.getSelection && window.getSelection().type === 'Range') return;
 
                     isDragging = true;
+                    pointerId = event.pointerId;
                     startX = event.clientX;
                     startY = event.clientY;
                     startScrollLeft = pre.scrollLeft;
                     startScrollTop = pre.scrollTop;
                     pre.classList.add('dragging');
 
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', stopDragging);
+                    if (typeof pre.setPointerCapture === 'function') {
+                        pre.setPointerCapture(event.pointerId);
+                    }
+                    pre.addEventListener('pointermove', onPointerMove);
+                    pre.addEventListener('pointerup', stopDragging);
+                    pre.addEventListener('pointercancel', stopDragging);
                     event.preventDefault();
                 });
 
@@ -5359,8 +5381,8 @@
                 const mcDivs = document.querySelectorAll('#file-preview-content .markdown-content');
                 mcDivs.forEach(mc => {
                     postProcessCodeBlocks(mc);
-                    enableCodeBlockDragPan(mc);
                 });
+                enableCodeBlockDragPan(document.getElementById('file-preview-content'));
                 // Highlight all code blocks in wrapper first, then standalone
                 if (window.hljs) {
                     document.querySelectorAll('#file-preview-content .code-block-wrapper pre code').forEach((block) => {
