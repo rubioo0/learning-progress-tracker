@@ -3650,11 +3650,12 @@
 
             // Configure and render markdown
             configureMarked();
+            const formattedMarkdown = beautifyGeneratedMarkdown(markdownContent || '');
             let renderedContent = '';
             try {
-                renderedContent = typeof marked !== 'undefined' ? marked.parse(markdownContent) : markdownContent;
+                renderedContent = typeof marked !== 'undefined' ? marked.parse(formattedMarkdown) : formattedMarkdown;
             } catch (e) {
-                renderedContent = '<pre>' + escapeHtml(markdownContent) + '</pre>';
+                renderedContent = '<pre>' + escapeHtml(formattedMarkdown) + '</pre>';
             }
 
             const generatedDate = generatedAt ? new Date(generatedAt).toLocaleString() : 'Unknown';
@@ -3705,7 +3706,7 @@
                     <!-- Raw view (hidden by default) -->
                     <div id="ai-raw-content" class="hidden">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(markdownContent)}</code></pre>
+                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(formattedMarkdown)}</code></pre>
                         </div>
                     </div>
 
@@ -3908,14 +3909,15 @@
                 }
 
                 const data = await response.json();
-                currentExplanation = { term, explanation: data.explanation, sourceTopicTitle, sourceContext };
+                const formattedExplanation = beautifyGeneratedMarkdown(data.explanation || '');
+                currentExplanation = { term, explanation: formattedExplanation, sourceTopicTitle, sourceContext };
 
                 configureMarked();
                 let rendered;
                 try {
-                    rendered = typeof marked !== 'undefined' ? marked.parse(data.explanation) : data.explanation;
+                    rendered = typeof marked !== 'undefined' ? marked.parse(formattedExplanation) : formattedExplanation;
                 } catch (e) {
-                    rendered = data.explanation;
+                    rendered = formattedExplanation;
                 }
 
                 contentEl.innerHTML = `
@@ -4229,7 +4231,7 @@
                     
                     <div id="review-answer" class="hidden">
                         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                            <div class="markdown-content text-sm">${(() => { configureMarked(); try { return marked.parse(note.explanation); } catch(e) { return note.explanation; } })()}</div>
+                            <div class="markdown-content text-sm">${(() => { const normalizedNote = beautifyGeneratedMarkdown(note.explanation || ''); configureMarked(); try { return marked.parse(normalizedNote); } catch(e) { return normalizedNote; } })()}</div>
                         </div>
                     </div>
 
@@ -4304,6 +4306,153 @@
             
             // If 3 or more patterns match, consider it Markdown
             return matchCount >= 3;
+        }
+
+        // Normalize AI output that uses "Label: ..." communication sections
+        // into heading-based markdown for cleaner rendering.
+        const COMMUNICATION_SECTION_LABELS = {
+            'subject': 'Subject',
+            'problem': 'Problem',
+            'impact': 'Impact',
+            'action taken': 'Action Taken',
+            'actions taken': 'Action Taken',
+            'action items': 'Action Items',
+            'proposed solution': 'Proposed Solution',
+            'proposed solution / ask': 'Proposed Solution / Ask',
+            'proposed fix': 'Proposed Fix',
+            'ask': 'Ask',
+            'timeline impact': 'Timeline Impact',
+            'next steps': 'Next Steps',
+            'current status': 'Current Status',
+            'root cause': 'Root Cause',
+            'environment': 'Environment',
+            'severity': 'Severity',
+            'blocker': 'Blocker',
+            'mitigation': 'Mitigation',
+            'eta': 'ETA',
+            'owner': 'Owner'
+        };
+
+        const COMMUNICATION_SECTION_REGEX = new RegExp(
+            '^\\s*(?:\\*\\*\\s*)?('
+            + Object.keys(COMMUNICATION_SECTION_LABELS)
+                .sort((a, b) => b.length - a.length)
+                .map(label => label.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&'))
+                .join('|')
+            + ')(?:\\s*\\*\\*)?\\s*:\\s*(.*)$',
+            'i'
+        );
+
+        function normalizeCommunicationSectionKey(label) {
+            return (label || '')
+                .toLowerCase()
+                .replace(/\s*\/\s*/g, ' / ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function countCommunicationSections(content) {
+            if (!content) return 0;
+
+            let sectionCount = 0;
+            for (const line of content.split('\n')) {
+                if (COMMUNICATION_SECTION_REGEX.test(line.trim())) {
+                    sectionCount++;
+                }
+            }
+
+            return sectionCount;
+        }
+
+        function beautifyGeneratedMarkdown(content) {
+            if (typeof content !== 'string') return '';
+
+            const normalized = content.replace(/\r\n?/g, '\n').trim();
+            if (!normalized) return '';
+
+            const fencedBlocks = [];
+            let working = normalized.replace(/```[\s\S]*?```/g, (block) => {
+                const token = `@@CODE_BLOCK_${fencedBlocks.length}@@`;
+                fencedBlocks.push(block);
+                return token;
+            });
+
+            const restoreFencedBlocks = (text) => {
+                let restored = text;
+                fencedBlocks.forEach((block, index) => {
+                    restored = restored.replace(`@@CODE_BLOCK_${index}@@`, block);
+                });
+                return restored;
+            };
+
+            if (countCommunicationSections(working) < 3) {
+                return restoreFencedBlocks(
+                    working
+                        .replace(/[ \t]+\n/g, '\n')
+                        .replace(/\n{3,}/g, '\n\n')
+                        .trim()
+                );
+            }
+
+            const lines = working.split('\n');
+            const output = [];
+
+            lines.forEach((rawLine, index) => {
+                const line = rawLine.replace(/[ \t]+$/g, '');
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    if (output.length > 0 && output[output.length - 1] !== '') {
+                        output.push('');
+                    }
+                    return;
+                }
+
+                if (
+                    index === 0
+                    && trimmed.endsWith(':')
+                    && !trimmed.startsWith('#')
+                    && trimmed.length < 140
+                ) {
+                    output.push(`## ${trimmed.slice(0, -1).trim()}`);
+                    output.push('');
+                    return;
+                }
+
+                const sectionMatch = trimmed.match(COMMUNICATION_SECTION_REGEX);
+                if (sectionMatch) {
+                    const normalizedKey = normalizeCommunicationSectionKey(sectionMatch[1]);
+                    const canonicalLabel = COMMUNICATION_SECTION_LABELS[normalizedKey] || sectionMatch[1].trim();
+                    const body = (sectionMatch[2] || '').trim();
+
+                    if (output.length > 0 && output[output.length - 1] !== '') {
+                        output.push('');
+                    }
+
+                    if (canonicalLabel === 'Subject') {
+                        output.push(`## ${body || 'Subject'}`);
+                    } else {
+                        output.push(`### ${canonicalLabel}`);
+                        if (body) {
+                            output.push(body);
+                        }
+                    }
+
+                    output.push('');
+                    return;
+                }
+
+                const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
+                if (bulletMatch) {
+                    output.push(`- ${bulletMatch[1].trim()}`);
+                    return;
+                }
+
+                output.push(line);
+            });
+
+            const formatted = output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+            return restoreFencedBlocks(formatted);
         }
 
         // Configure marked once with proper v9 API
