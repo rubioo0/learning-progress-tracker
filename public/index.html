@@ -577,6 +577,34 @@
             cursor: grabbing;
             user-select: none;
         }
+
+        .markdown-content .readable-text-frame {
+            margin: 1.25rem 0;
+            border: 1px solid #CBD5E1;
+            border-left: 4px solid #0EA5E9;
+            border-radius: 0.75rem;
+            background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .dark .markdown-content .readable-text-frame {
+            border-color: #334155;
+            border-left-color: #38BDF8;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.72) 100%);
+            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.45);
+        }
+
+        .markdown-content .readable-text-frame-body {
+            padding: 0.95rem 1.05rem;
+        }
+
+        .markdown-content .readable-text-frame-body > :first-child {
+            margin-top: 0;
+        }
+
+        .markdown-content .readable-text-frame-body > :last-child {
+            margin-bottom: 0;
+        }
         
         /* Content area padding */
         .preview-content-area {
@@ -3676,6 +3704,7 @@
             // Configure and render markdown
             configureMarked();
             const formattedMarkdown = beautifyGeneratedMarkdown(markdownContent || '');
+            const rawMarkdownContent = stripReadableFrameMarkers(formattedMarkdown);
             let renderedContent = '';
             try {
                 renderedContent = typeof marked !== 'undefined' ? marked.parse(formattedMarkdown) : formattedMarkdown;
@@ -3731,7 +3760,7 @@
                     <!-- Raw view (hidden by default) -->
                     <div id="ai-raw-content" class="hidden">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(formattedMarkdown)}</code></pre>
+                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(rawMarkdownContent)}</code></pre>
                         </div>
                     </div>
 
@@ -3936,7 +3965,8 @@
 
                 const data = await response.json();
                 const formattedExplanation = beautifyGeneratedMarkdown(data.explanation || '');
-                currentExplanation = { term, explanation: formattedExplanation, sourceTopicTitle, sourceContext };
+                const cleanExplanation = stripReadableFrameMarkers(formattedExplanation);
+                currentExplanation = { term, explanation: cleanExplanation, sourceTopicTitle, sourceContext };
 
                 configureMarked();
                 let rendered;
@@ -4034,8 +4064,8 @@
                     const selection = window.getSelection();
                     const selectedText = selection.toString().trim();
 
-                    // Need a valid selection of 2-100 chars
-                    if (!selectedText || selectedText.length < 2 || selectedText.length > 100) return;
+                    // Need a valid selection of 2-350 chars
+                    if (!selectedText || selectedText.length < 2 || selectedText.length > 350) return;
 
                     // Only trigger within AI content areas inside file-preview-modal
                     // Check if the selection's anchor node is inside the content area
@@ -4395,6 +4425,24 @@
         }
 
         const TEXTUAL_FENCE_LANGUAGES = new Set(['md', 'markdown', 'mdx', 'text', 'txt', 'plain', 'plaintext']);
+        const READABLE_FRAME_START_MARKER = '[[READABLE_FRAME_START]]';
+        const READABLE_FRAME_END_MARKER = '[[READABLE_FRAME_END]]';
+
+        function wrapReadableFrameBlock(content) {
+            const text = (content || '').trim();
+            if (!text) return text;
+            return `${READABLE_FRAME_START_MARKER}\n${text}\n${READABLE_FRAME_END_MARKER}`;
+        }
+
+        function stripReadableFrameMarkers(content) {
+            if (typeof content !== 'string') return '';
+
+            return content
+                .split(READABLE_FRAME_START_MARKER).join('')
+                .split(READABLE_FRAME_END_MARKER).join('')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+        }
 
         function looksLikeSourceCode(content) {
             if (!content) return false;
@@ -4522,7 +4570,7 @@
             }
 
             if (shouldUnwrapFencedBlock(language, body)) {
-                return body;
+                return wrapReadableFrameBlock(body);
             }
 
             return content;
@@ -4570,7 +4618,8 @@
                 const fencedBody = (body || '').trim();
 
                 if (shouldUnwrapFencedBlock(language, fencedBody)) {
-                    return stripCommonIndentationIfStructured(fencedBody);
+                    const normalizedFencedBody = stripCommonIndentationIfStructured(fencedBody);
+                    return wrapReadableFrameBlock(normalizedFencedBody);
                 }
 
                 const token = `@@CODE_BLOCK_${fencedBlocks.length}@@`;
@@ -4734,6 +4783,8 @@
         // Post-process rendered HTML: wrap any bare <pre><code> blocks with ChatGPT-style wrapper
         function postProcessCodeBlocks(container) {
             if (!container) return;
+            postProcessReadableFrames(container);
+
             container.querySelectorAll('pre > code').forEach(codeEl => {
                 const pre = codeEl.parentElement;
                 // Skip if already inside code-block-wrapper
@@ -4762,6 +4813,63 @@
             renderMermaidDiagrams(container);
         }
 
+        function postProcessReadableFrames(container) {
+            if (!container) return;
+
+            const markerText = (node) => node && node.nodeType === Node.ELEMENT_NODE && node.tagName === 'P'
+                ? (node.textContent || '').trim()
+                : '';
+
+            const starts = Array.from(container.querySelectorAll('p')).filter((p) => {
+                return (p.textContent || '').trim() === READABLE_FRAME_START_MARKER;
+            });
+
+            starts.forEach((startNode) => {
+                const parent = startNode.parentElement;
+                if (!parent) return;
+
+                const nodesToMove = [];
+                let cursor = startNode.nextSibling;
+                let endNode = null;
+
+                while (cursor) {
+                    if (markerText(cursor) === READABLE_FRAME_END_MARKER) {
+                        endNode = cursor;
+                        break;
+                    }
+
+                    const next = cursor.nextSibling;
+                    nodesToMove.push(cursor);
+                    cursor = next;
+                }
+
+                if (!endNode) {
+                    startNode.remove();
+                    return;
+                }
+
+                const frame = document.createElement('div');
+                frame.className = 'readable-text-frame';
+                const body = document.createElement('div');
+                body.className = 'readable-text-frame-body';
+                frame.appendChild(body);
+
+                parent.insertBefore(frame, startNode);
+                nodesToMove.forEach((node) => body.appendChild(node));
+
+                startNode.remove();
+                endNode.remove();
+            });
+
+            // Remove stray markers if malformed content leaves them behind.
+            container.querySelectorAll('p').forEach((p) => {
+                const text = (p.textContent || '').trim();
+                if (text === READABLE_FRAME_START_MARKER || text === READABLE_FRAME_END_MARKER) {
+                    p.remove();
+                }
+            });
+        }
+
         function enableCodeBlockDragPan(container) {
             if (!container) return;
 
@@ -4776,38 +4884,71 @@
                 pre.classList.add('code-pan-enabled');
 
                 let isDragging = false;
+                let isPointerTracking = false;
                 let pointerId = null;
                 let startX = 0;
                 let startY = 0;
                 let startScrollLeft = 0;
-                let startScrollTop = 0;
+                const horizontalActivationThreshold = 8;
 
                 const onPointerMove = (event) => {
-                    if (!isDragging || event.pointerId !== pointerId) return;
+                    if (!isPointerTracking || event.pointerId !== pointerId) return;
 
-                    pre.scrollLeft = startScrollLeft - (event.clientX - startX);
-                    pre.scrollTop = startScrollTop - (event.clientY - startY);
+                    const deltaX = event.clientX - startX;
+                    const deltaY = event.clientY - startY;
+
+                    if (!isDragging) {
+                        if (Math.abs(deltaX) < horizontalActivationThreshold) {
+                            return;
+                        }
+
+                        if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+                            return;
+                        }
+
+                        if (window.getSelection && window.getSelection().type === 'Range') {
+                            stopPointerTracking(event);
+                            return;
+                        }
+
+                        isDragging = true;
+                        pre.classList.add('dragging');
+
+                        try {
+                            if (typeof pre.setPointerCapture === 'function') {
+                                pre.setPointerCapture(event.pointerId);
+                            }
+                        } catch (e) {
+                            // Ignore pointer capture errors and continue dragging.
+                        }
+                    }
+
+                    pre.scrollLeft = startScrollLeft - deltaX;
                     event.preventDefault();
                 };
 
-                const stopDragging = (event) => {
-                    if (!isDragging || event.pointerId !== pointerId) return;
+                const stopPointerTracking = (event) => {
+                    if (!isPointerTracking || event.pointerId !== pointerId) return;
 
-                    isDragging = false;
-                    pointerId = null;
-                    pre.classList.remove('dragging');
+                    if (isDragging) {
+                        pre.classList.remove('dragging');
 
-                    try {
-                        if (typeof pre.releasePointerCapture === 'function') {
-                            pre.releasePointerCapture(event.pointerId);
+                        try {
+                            if (typeof pre.releasePointerCapture === 'function') {
+                                pre.releasePointerCapture(event.pointerId);
+                            }
+                        } catch (e) {
+                            // Ignore release errors when pointer capture is already cleared.
                         }
-                    } catch (e) {
-                        // Ignore release errors when pointer capture is already cleared.
                     }
 
+                    isDragging = false;
+                    isPointerTracking = false;
+                    pointerId = null;
+
                     pre.removeEventListener('pointermove', onPointerMove);
-                    pre.removeEventListener('pointerup', stopDragging);
-                    pre.removeEventListener('pointercancel', stopDragging);
+                    pre.removeEventListener('pointerup', stopPointerTracking);
+                    pre.removeEventListener('pointercancel', stopPointerTracking);
                 };
 
                 pre.addEventListener('wheel', (event) => {
@@ -4829,24 +4970,31 @@
 
                 pre.addEventListener('pointerdown', (event) => {
                     if (event.pointerType !== 'touch' && event.button !== 0) return;
-                    if (pre.scrollWidth <= pre.clientWidth && pre.scrollHeight <= pre.clientHeight) return;
+                    if (pre.scrollWidth <= pre.clientWidth) return;
                     if (window.getSelection && window.getSelection().type === 'Range') return;
 
-                    isDragging = true;
+                    const hasInteractiveTarget = event.target && (
+                        event.target.closest('a')
+                        || event.target.closest('button')
+                        || event.target.closest('input')
+                        || event.target.closest('textarea')
+                    );
+                    if (hasInteractiveTarget) return;
+
+                    const codeNode = event.target && event.target.closest('code');
+                    if (codeNode && event.detail >= 2) {
+                        return; // keep double-click word selection behavior
+                    }
+
+                    isDragging = false;
+                    isPointerTracking = true;
                     pointerId = event.pointerId;
                     startX = event.clientX;
                     startY = event.clientY;
                     startScrollLeft = pre.scrollLeft;
-                    startScrollTop = pre.scrollTop;
-                    pre.classList.add('dragging');
-
-                    if (typeof pre.setPointerCapture === 'function') {
-                        pre.setPointerCapture(event.pointerId);
-                    }
                     pre.addEventListener('pointermove', onPointerMove);
-                    pre.addEventListener('pointerup', stopDragging);
-                    pre.addEventListener('pointercancel', stopDragging);
-                    event.preventDefault();
+                    pre.addEventListener('pointerup', stopPointerTracking);
+                    pre.addEventListener('pointercancel', stopPointerTracking);
                 });
 
                 pre.addEventListener('dragstart', (event) => event.preventDefault());
