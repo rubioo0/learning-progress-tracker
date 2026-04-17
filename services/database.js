@@ -34,6 +34,63 @@ class DatabaseService {
                 }
             });
 
+            // Add generated_content column for AI-generated educational content
+            this.db.run(`ALTER TABLE topics ADD COLUMN generated_content TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding generated_content column:', err);
+                }
+            });
+
+            // Add generation_status column: null = not generated, 'completed' = done, 'error' = failed, 'truncated' = cropped
+            this.db.run(`ALTER TABLE topics ADD COLUMN generation_status TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding generation_status column:', err);
+                }
+            });
+
+            // Add generated_at timestamp
+            this.db.run(`ALTER TABLE topics ADD COLUMN generated_at TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding generated_at column:', err);
+                }
+            });
+
+            // Add generated model metadata
+            this.db.run(`ALTER TABLE topics ADD COLUMN generated_model TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding generated_model column:', err);
+                }
+            });
+
+            // Add generation metadata payload (JSON string)
+            this.db.run(`ALTER TABLE topics ADD COLUMN generation_meta TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding generation_meta column:', err);
+                }
+            });
+
+            // Learning notes table for inline learning assistant
+            this.db.run(`CREATE TABLE IF NOT EXISTS learning_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                term TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                source_topic_id INTEGER,
+                source_topic_title TEXT,
+                source_context TEXT,
+                model_used TEXT,
+                review_count INTEGER DEFAULT 0,
+                last_reviewed TEXT,
+                mastered INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            )`);
+
+            this.db.run(`ALTER TABLE learning_notes ADD COLUMN model_used TEXT`, (err) => {
+                if (err && !err.message.includes('duplicate column name')) {
+                    console.error('Error adding learning_notes.model_used column:', err);
+                }
+            });
+
             this.db.run(`CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 start_time DATETIME NOT NULL,
@@ -228,6 +285,168 @@ class DatabaseService {
         });
     }
 
+    getTopicsPaginated(page, limit, filters, callback) {
+        const offset = (page - 1) * limit;
+        let whereConditions = [];
+        let params = [];
+
+        if (filters.category) {
+            // Support both exact match and LIKE for subcategories
+            if (filters.category.includes('%')) {
+                whereConditions.push('category LIKE ?');
+                params.push(filters.category);
+            } else {
+                whereConditions.push('category LIKE ?');
+                params.push(filters.category + '%');
+            }
+        }
+        if (filters.module) {
+            whereConditions.push('module LIKE ?');
+            params.push('%' + filters.module + '%');
+        }
+        if (filters.status) {
+            whereConditions.push('status = ?');
+            params.push(filters.status);
+        }
+
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+
+        // Get total count
+        this.db.get(`SELECT COUNT(*) as total FROM topics ${whereClause}`, params, (err, countRow) => {
+            if (err) return callback(err);
+
+            const total = countRow.total;
+            const totalPages = Math.ceil(total / limit);
+
+            // Get paginated results
+            this.db.all(
+                `SELECT * FROM topics ${whereClause} ORDER BY order_index, id LIMIT ? OFFSET ?`,
+                [...params, limit, offset],
+                (err, rows) => {
+                    if (err) return callback(err);
+
+                    // Parse questions for each topic
+                    const topics = rows.map(row => {
+                        if (row.questions) {
+                            try {
+                                row.questions = JSON.parse(row.questions);
+                            } catch (e) {
+                                row.questions = [];
+                            }
+                        } else {
+                            row.questions = [];
+                        }
+                        return row;
+                    });
+
+                    callback(null, {
+                        topics,
+                        pagination: {
+                            page,
+                            limit,
+                            total,
+                            totalPages,
+                            hasMore: page < totalPages
+                        }
+                    });
+                }
+            );
+        });
+    }
+
+    getTopicsMetadata(callback) {
+        this.db.all(`
+            SELECT DISTINCT category 
+            FROM topics 
+            ORDER BY category
+        `, (err, rows) => {
+            if (err) return callback(err);
+
+            // Group categories into main groups
+            const mainCategories = {
+                'Manual Testing': [],
+                'Software Engineering in Test': [],
+                'Test Automation': {}
+            };
+
+            rows.forEach(row => {
+                const cat = row.category;
+                if (cat === 'Manual Testing') {
+                    mainCategories['Manual Testing'].push(cat);
+                } else if (cat === 'Software Engineering in Test') {
+                    mainCategories['Software Engineering in Test'].push(cat);
+                } else if (cat.startsWith('Test Automation')) {
+                    // Parse: "Test Automation - language - type"
+                    const parts = cat.split(' - ');
+                    if (parts.length >= 2) {
+                        const language = parts[1];
+                        if (!mainCategories['Test Automation'][language]) {
+                            mainCategories['Test Automation'][language] = [];
+                        }
+                        mainCategories['Test Automation'][language].push(cat);
+                    }
+                }
+            });
+
+            // Get counts for main groups
+            this.db.all(`
+                SELECT 
+                    CASE 
+                        WHEN category = 'Manual Testing' THEN 'Manual Testing'
+                        WHEN category = 'Software Engineering in Test' THEN 'Software Engineering in Test'
+                        WHEN category LIKE 'Test Automation%' THEN 'Test Automation'
+                        ELSE 'Other'
+                    END as main_category,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+                FROM topics
+                GROUP BY main_category
+            `, (err, counts) => {
+                if (err) return callback(err);
+
+                const stats = {};
+                counts.forEach(row => {
+                    stats[row.main_category] = {
+                        total: row.total,
+                        completed: row.completed
+                    };
+                });
+
+                // Get counts per language for Test Automation
+                this.db.all(`
+                    SELECT 
+                        category,
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+                    FROM topics
+                    WHERE category LIKE 'Test Automation%'
+                    GROUP BY category
+                `, (err, langCounts) => {
+                    if (err) return callback(err);
+
+                    const languageStats = {};
+                    langCounts.forEach(row => {
+                        const parts = row.category.split(' - ');
+                        if (parts.length >= 2) {
+                            const lang = parts[1];
+                            if (!languageStats[lang]) {
+                                languageStats[lang] = { total: 0, completed: 0 };
+                            }
+                            languageStats[lang].total += row.total;
+                            languageStats[lang].completed += row.completed;
+                        }
+                    });
+
+                    callback(null, { 
+                        mainCategories, 
+                        stats, 
+                        languageStats 
+                    });
+                });
+            });
+        });
+    }
+
     updateTopic(id, status, notes, callback) {
         this.db.run(
             'UPDATE topics SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -385,6 +604,116 @@ class DatabaseService {
                 callback
             );
         });
+    }
+
+    // Save AI-generated content for a topic
+    saveGeneratedContent(topicId, content, status, modelUsed, generationMeta, callback) {
+        if (typeof modelUsed === 'function') {
+            callback = modelUsed;
+            modelUsed = null;
+            generationMeta = null;
+        } else if (typeof generationMeta === 'function') {
+            callback = generationMeta;
+            generationMeta = null;
+        }
+
+        const serializedMeta = generationMeta ? JSON.stringify(generationMeta) : null;
+        this.db.run(
+            'UPDATE topics SET generated_content = ?, generation_status = ?, generated_model = ?, generation_meta = ?, generated_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [content, status, modelUsed || null, serializedMeta, new Date().toISOString(), topicId],
+            callback
+        );
+    }
+
+    // Get generated content for a topic
+    getGeneratedContent(topicId, callback) {
+        this.db.get(
+            'SELECT id, title, description, generated_content, generation_status, generated_at, generated_model, generation_meta FROM topics WHERE id = ?',
+            [topicId],
+            callback
+        );
+    }
+
+    // Clear generated content for a topic (allows regeneration)
+    clearGeneratedContent(topicId, callback) {
+        this.db.run(
+            'UPDATE topics SET generated_content = NULL, generation_status = NULL, generated_model = NULL, generation_meta = NULL, generated_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [topicId],
+            callback
+        );
+    }
+
+    // ============ Learning Notes (Inline Learning Assistant) ============
+
+    // Save a learning note (explained term)
+    saveLearningNote(data, callback) {
+        this.db.run(
+            `INSERT INTO learning_notes (term, explanation, source_topic_id, source_topic_title, source_context, model_used)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [data.term, data.explanation, data.sourceTopicId || null, data.sourceTopicTitle || null, data.sourceContext || null, data.modelUsed || null],
+            function(err) {
+                if (err) return callback(err);
+                callback(null, { id: this.lastID });
+            }
+        );
+    }
+
+    // Get all learning notes (for review)
+    getLearningNotes(callback) {
+        this.db.all(
+            `SELECT * FROM learning_notes ORDER BY 
+                CASE WHEN mastered = 0 THEN 0 ELSE 1 END,
+                review_count ASC, 
+                created_at DESC`,
+            callback
+        );
+    }
+
+    // Get learning notes due for review (not mastered, sorted by least reviewed)
+    getLearningNotesForReview(limit, callback) {
+        this.db.all(
+            `SELECT * FROM learning_notes WHERE mastered = 0 
+             ORDER BY review_count ASC, last_reviewed ASC NULLS FIRST
+             LIMIT ?`,
+            [limit || 10],
+            callback
+        );
+    }
+
+    // Mark a learning note as reviewed
+    reviewLearningNote(noteId, callback) {
+        this.db.run(
+            `UPDATE learning_notes SET review_count = review_count + 1, last_reviewed = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
+            [noteId],
+            callback
+        );
+    }
+
+    // Toggle mastered status for a learning note
+    toggleLearningNoteMastered(noteId, callback) {
+        this.db.run(
+            `UPDATE learning_notes SET mastered = CASE WHEN mastered = 0 THEN 1 ELSE 0 END, updated_at = datetime('now') WHERE id = ?`,
+            [noteId],
+            callback
+        );
+    }
+
+    // Delete a learning note
+    deleteLearningNote(noteId, callback) {
+        this.db.run('DELETE FROM learning_notes WHERE id = ?', [noteId], callback);
+    }
+
+    // Get learning notes stats
+    getLearningNotesStats(callback) {
+        this.db.get(
+            `SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN mastered = 1 THEN 1 ELSE 0 END) as mastered,
+                SUM(CASE WHEN mastered = 0 THEN 1 ELSE 0 END) as pending,
+                AVG(review_count) as avgReviews
+             FROM learning_notes`,
+            callback
+        );
     }
 
     clearAllData(callback) {
