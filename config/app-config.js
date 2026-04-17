@@ -1,6 +1,36 @@
 module.exports = {
     // Server configuration
     PORT: process.env.PORT || 3000,
+
+    // AI model configuration
+    AI_MODELS: [
+        { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tier: 'free', recommended: true },
+        { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', tier: 'free' },
+        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', tier: 'free' }
+    ],
+    AI_DEFAULT_MODEL: 'gemini-2.5-flash',
+    AI_FALLBACK_ORDER: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'],
+    AI_RETRY: {
+        maxRetriesPerModel: 3,
+        baseDelayMs: 3000,
+        maxDelayMs: 15000,
+        jitterMs: 700
+    },
+    AI_EXPLAIN_RATE_LIMIT: {
+        windowMs: 60000,
+        maxRequests: 10,
+        cooldownMs: 15000,
+        cacheTtlMs: 10 * 60 * 1000,
+        maxTermLength: 350
+    },
+
+    // Code validation settings (used in fullscreen edit mode)
+    CODE_VALIDATION: {
+        timeoutMs: 12000,
+        dotnetTimeoutMs: 20000,
+        maxDiagnostics: 8,
+        maxCodeLength: 50000
+    },
     
     // Database configuration
     DATABASE_PATH: './learning_progress.db',

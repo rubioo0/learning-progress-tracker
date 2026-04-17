@@ -963,6 +963,66 @@
             line-height: inherit;
         }
 
+        .code-fullscreen-pre.hidden {
+            display: none;
+        }
+
+        .code-fullscreen-editor {
+            display: none;
+            width: 100%;
+            min-height: calc(100vh - 170px);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            background: #0B1220;
+            color: #E2E8F0;
+            padding: 1rem;
+            font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            resize: vertical;
+            outline: none;
+        }
+
+        .code-fullscreen-editor.active {
+            display: block;
+        }
+
+        .code-fullscreen-feedback {
+            display: none;
+            margin-top: 0.8rem;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 0.85rem;
+            background: rgba(15, 23, 42, 0.85);
+            color: #E2E8F0;
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
+        .code-fullscreen-feedback.show {
+            display: block;
+        }
+
+        .code-fullscreen-feedback.valid {
+            border-color: #166534;
+            background: rgba(22, 101, 52, 0.16);
+        }
+
+        .code-fullscreen-feedback.invalid {
+            border-color: #991B1B;
+            background: rgba(153, 27, 27, 0.2);
+        }
+
+        .code-validation-list {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            list-style: disc;
+        }
+
+        .code-validation-list li + li {
+            margin-top: 0.18rem;
+        }
+
         /* Fullscreen diagram modal */
         .mermaid-fullscreen-overlay {
             position: fixed;
@@ -1550,7 +1610,7 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">AI Content Generation</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Google Gemini 2.5 Flash (Free)</p>
+                        <p id="ai-settings-model-subtitle" class="text-xs text-gray-500 dark:text-gray-400">Google Gemini (loading model...)</p>
                     </div>
                 </div>
                 <button onclick="closeAISettings()" class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors">
@@ -1571,6 +1631,15 @@
                     </div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Your key is stored locally and never shared.</p>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Active AI Model</label>
+                    <select id="ai-model-select"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 text-sm">
+                        <option value="">Loading models...</option>
+                    </select>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Model changes apply immediately for generation and Explain while recording.</p>
+                </div>
                 
                 <div id="ai-key-status" class="hidden p-3 rounded-lg border text-sm">
                     <!-- Status will be shown here -->
@@ -1582,14 +1651,14 @@
                         <li>• Click the <strong>sparkle icon</strong> on any topic to generate content</li>
                         <li>• Content is generated once and cached for future views</li>
                         <li>• If generation fails or is truncated, you can regenerate</li>
-                        <li>• Uses Google Gemini 2.5 Flash — completely free!</li>
+                        <li>• Uses <strong id="ai-current-model-label">Gemini</strong> with automatic model fallback on overload</li>
                     </ul>
                 </div>
                 
                 <div class="flex space-x-3 pt-2">
-                    <button onclick="saveAIApiKey()" 
+                    <button onclick="saveAISettings()" 
                             class="flex-1 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white py-2 rounded-lg transition-colors text-sm font-medium">
-                        Save API Key
+                        Save Settings
                     </button>
                     <button onclick="closeAISettings()" 
                             class="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 rounded-lg transition-colors text-sm font-medium">
@@ -3467,10 +3536,77 @@
 
         // Track topics currently being generated to prevent duplicate requests
         const generatingTopics = new Set();
+        // Cache generated markdown so "Copy All" can copy complete text
+        const aiGeneratedContentCache = new Map();
+        // Cached AI status payload from /api/ai/status
+        let aiStatusCache = null;
         // UI lock state: when true, prevent closing the file preview modal
         let uiLockedForGeneration = false;
+        // Explain cooldown in milliseconds timestamp
+        let explainCooldownUntil = 0;
         // Current explain popup state
         let currentExplanation = null;
+
+        function getAIModelLabel(modelId) {
+            const target = String(modelId || '').trim();
+            const models = Array.isArray(aiStatusCache?.availableModels) ? aiStatusCache.availableModels : [];
+            const match = models.find((model) => model.id === target);
+            return match ? match.label : (target || 'Gemini');
+        }
+
+        function getActiveAIModelLabel() {
+            const activeModel = aiStatusCache?.activeModel || aiStatusCache?.model;
+            return getAIModelLabel(activeModel);
+        }
+
+        function renderAIModelSelector(status) {
+            const select = document.getElementById('ai-model-select');
+            if (!select) return;
+
+            const availableModels = Array.isArray(status?.availableModels) ? status.availableModels : [];
+            if (availableModels.length === 0) {
+                select.innerHTML = '<option value="">No models available</option>';
+                select.disabled = true;
+                return;
+            }
+
+            const activeModel = status.activeModel || status.model;
+            select.disabled = false;
+            select.innerHTML = availableModels.map((model) => {
+                const suffix = model.recommended ? ' (Recommended)' : '';
+                return `<option value="${escapeHtml(model.id)}">${escapeHtml(model.label || model.id)}${suffix}</option>`;
+            }).join('');
+
+            if (activeModel) {
+                select.value = activeModel;
+            }
+
+            const subtitle = document.getElementById('ai-settings-model-subtitle');
+            if (subtitle) {
+                subtitle.textContent = `${getAIModelLabel(activeModel)} (${activeModel || 'model'})`;
+            }
+
+            const currentLabel = document.getElementById('ai-current-model-label');
+            if (currentLabel) {
+                currentLabel.textContent = getAIModelLabel(activeModel);
+            }
+        }
+
+        function getExplainCooldownSecondsRemaining() {
+            if (!explainCooldownUntil) {
+                return 0;
+            }
+            return Math.max(0, Math.ceil((explainCooldownUntil - Date.now()) / 1000));
+        }
+
+        function setExplainCooldown(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            if (!safeSeconds) {
+                explainCooldownUntil = 0;
+                return;
+            }
+            explainCooldownUntil = Date.now() + (safeSeconds * 1000);
+        }
 
         // Open AI Settings modal
         async function openAISettings() {
@@ -3484,6 +3620,8 @@
             try {
                 const response = await fetch('/api/ai/status');
                 const status = await response.json();
+                aiStatusCache = status;
+                renderAIModelSelector(status);
                 
                 const statusEl = document.getElementById('ai-key-status');
                 if (status.configured) {
@@ -3494,6 +3632,7 @@
                             <span class="text-green-700 dark:text-green-300 font-medium">API Key configured</span>
                         </div>
                         <p class="text-xs text-green-600 dark:text-green-400 mt-1">Key: ${status.maskedKey} (source: ${status.source})</p>
+                        <p class="text-xs text-green-600 dark:text-green-400">Active model: ${getAIModelLabel(status.activeModel || status.model)}</p>
                     `;
                     statusEl.classList.remove('hidden');
                 } else {
@@ -3531,35 +3670,72 @@
             }
         }
 
-        async function saveAIApiKey() {
+        async function saveAISettings() {
             const apiKey = document.getElementById('ai-api-key-input').value.trim();
-            if (!apiKey) {
-                showErrorMessage('Please enter an API key');
-                return;
-            }
-            if (!apiKey.startsWith('AIza')) {
+            const modelSelect = document.getElementById('ai-model-select');
+            const selectedModel = modelSelect ? modelSelect.value : null;
+            const previousModel = aiStatusCache?.activeModel || aiStatusCache?.model;
+
+            if (apiKey && !apiKey.startsWith('AIza')) {
                 showErrorMessage('Invalid API key format. Google Gemini keys typically start with "AIza". Get one free at aistudio.google.com/apikey');
                 return;
             }
-            
+
             try {
-                const response = await fetch('/api/ai/api-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey })
-                });
-                
-                if (response.ok) {
-                    showSuccessMessage('API key saved successfully!');
-                    document.getElementById('ai-api-key-input').value = '';
-                    closeAISettings();
-                } else {
-                    const err = await response.json();
-                    showErrorMessage(err.error || 'Failed to save API key');
+                let changed = false;
+
+                if (apiKey) {
+                    const keyResponse = await fetch('/api/ai/api-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ apiKey })
+                    });
+
+                    if (!keyResponse.ok) {
+                        const keyError = await keyResponse.json();
+                        showErrorMessage(keyError.error || 'Failed to save API key');
+                        return;
+                    }
+
+                    changed = true;
                 }
+
+                if (selectedModel && selectedModel !== previousModel) {
+                    const modelResponse = await fetch('/api/ai/model', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: selectedModel })
+                    });
+
+                    if (!modelResponse.ok) {
+                        const modelError = await modelResponse.json();
+                        showErrorMessage(modelError.error || 'Failed to save model selection');
+                        return;
+                    }
+
+                    changed = true;
+                }
+
+                if (!changed) {
+                    showSuccessMessage('No AI settings changes to save.');
+                    closeAISettings();
+                    return;
+                }
+
+                const refreshed = await fetch('/api/ai/status');
+                aiStatusCache = await refreshed.json();
+                renderAIModelSelector(aiStatusCache);
+
+                showSuccessMessage(`AI settings saved. Active model: ${getActiveAIModelLabel()}`);
+                document.getElementById('ai-api-key-input').value = '';
+                closeAISettings();
             } catch (error) {
-                showErrorMessage('Error saving API key: ' + error.message);
+                showErrorMessage('Error saving AI settings: ' + error.message);
             }
+        }
+
+        async function saveAIApiKey() {
+            await saveAISettings();
         }
 
         // Main function: generate or view AI content for a topic
@@ -3582,7 +3758,7 @@
 
                 if (existingData.hasContent) {
                     // Content already generated — show it directly
-                    showAIGeneratedContent(existingData.title, existingData.generatedContent, existingData.generatedAt, topicId);
+                    showAIGeneratedContent(existingData.title, existingData.generatedContent, existingData.generatedAt, topicId, existingData);
                     return;
                 }
 
@@ -3602,6 +3778,7 @@
         function showGenerateConfirmation(topicId, topicTitle, isRetry) {
             const title = document.getElementById('file-preview-title');
             const content = document.getElementById('file-preview-content');
+            const activeModelLabel = getActiveAIModelLabel();
 
             title.innerHTML = `<div class="flex items-center space-x-2">
                 <i data-lucide="sparkles" class="w-5 h-5 text-purple-500"></i>
@@ -3618,7 +3795,7 @@
                         <p class="text-base text-gray-700 dark:text-gray-300 font-medium mb-1">${topicTitle}</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                             ${isRetry ? 'Previous generation failed or was incomplete. This will regenerate using' : 'This will generate an in-depth educational document using'}
-                            <span class="font-medium">Gemini 2.5 Flash</span>. It may take 30-60 seconds.
+                            <span class="font-medium">${escapeHtml(activeModelLabel)}</span>. It may take 30-60 seconds.
                         </p>
                     </div>
                     <div class="flex items-center space-x-3">
@@ -3643,6 +3820,7 @@
         async function generateAIContent(topicId, force = false) {
             const title = document.getElementById('file-preview-title');
             const content = document.getElementById('file-preview-content');
+            const activeModelLabel = getActiveAIModelLabel();
 
             // Lock UI — prevent closing during generation
             uiLockedForGeneration = true;
@@ -3672,7 +3850,7 @@
                         </div>
                         <div class="text-center">
                             <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Generating Educational Content</h4>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Using Google Gemini 2.5 Flash with extended thinking...</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Using ${escapeHtml(activeModelLabel)} with extended thinking...</p>
                         </div>
                     </div>
                     
@@ -3681,7 +3859,7 @@
                         <div class="bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                             <div id="ai-progress-bar" class="h-full bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-in-out bg-[length:200%_100%] animate-[shimmer_2s_infinite]" style="width: 10%"></div>
                         </div>
-                        <p id="ai-progress-text" class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Preparing prompt and connecting to Gemini AI...</p>
+                        <p id="ai-progress-text" class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Preparing prompt and connecting to ${escapeHtml(activeModelLabel)}...</p>
                     </div>
 
                     <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md mx-auto">
@@ -3703,8 +3881,8 @@
             const progressText = document.getElementById('ai-progress-text');
 
             const progressSteps = [
-                { pct: 25, text: 'Sending prompt to Gemini AI...', delay: 2000 },
-                { pct: 40, text: 'Gemini is thinking about the topic...', delay: 5000 },
+                { pct: 25, text: `Sending prompt to ${activeModelLabel}...`, delay: 2000 },
+                { pct: 40, text: `${activeModelLabel} is thinking about the topic...`, delay: 5000 },
                 { pct: 55, text: 'Generating educational content...', delay: 10000 },
                 { pct: 70, text: 'Building structured sections...', delay: 20000 },
                 { pct: 85, text: 'Formatting and finalizing response...', delay: 35000 },
@@ -3822,6 +4000,14 @@
 
             const generatedDate = generatedAt ? new Date(generatedAt).toLocaleString() : 'Unknown';
             const isTruncated = meta && meta.isTruncated;
+            const modelLabel = (meta && (meta.modelLabel || getAIModelLabel(meta.model))) || getActiveAIModelLabel();
+
+            aiGeneratedContentCache.set(topicId, {
+                markdown: rawMarkdownContent,
+                title: displayTitle,
+                generatedAt,
+                modelLabel
+            });
 
             content.innerHTML = `
                 <div class="space-y-4">
@@ -3832,10 +4018,15 @@
                                 <i data-lucide="sparkles" class="w-3 h-3"></i>
                                 <span>AI Generated</span>
                             </span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(modelLabel)}</span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">&middot;</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">${generatedDate}</span>
                         </div>
                         <div class="flex items-center space-x-1.5 mt-1 sm:mt-0">
+                            <button onclick="copyFullGeneratedContent(${topicId})" class="text-xs bg-sky-100 hover:bg-sky-200 dark:bg-sky-900/30 dark:hover:bg-sky-800/40 text-sky-700 dark:text-sky-300 px-2.5 py-1 rounded-lg transition-colors font-medium flex items-center space-x-1" title="Copy full generated text">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy All</span>
+                            </button>
                             ${isTruncated ? `
                                 <button onclick="generateAIContent(${topicId}, true)" class="text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-800/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-lg transition-colors font-medium flex items-center space-x-1" title="Content was truncated - click to regenerate">
                                     <i data-lucide="alert-triangle" class="w-3 h-3"></i>
@@ -3894,6 +4085,20 @@
             }, 50);
 
             openFilePreviewModal();
+        }
+
+        function copyFullGeneratedContent(topicId) {
+            const entry = aiGeneratedContentCache.get(topicId);
+            if (!entry || !entry.markdown) {
+                showErrorMessage('No generated content available to copy yet.');
+                return;
+            }
+
+            navigator.clipboard.writeText(entry.markdown).then(() => {
+                showSuccessMessage('Full generated text copied to clipboard.');
+            }).catch((error) => {
+                showErrorMessage('Failed to copy text: ' + error.message);
+            });
         }
 
         // Toggle between rendered and raw view for AI content
@@ -4044,6 +4249,21 @@
             const popup = document.getElementById('explain-popup');
             const termEl = document.getElementById('explain-popup-term');
             const contentEl = document.getElementById('explain-popup-content');
+            const cooldownRemaining = getExplainCooldownSecondsRemaining();
+
+            if (cooldownRemaining > 0) {
+                popup.style.left = Math.min(x, window.innerWidth - 420) + 'px';
+                popup.style.top = Math.min(y + 10, window.innerHeight - 420) + 'px';
+                termEl.textContent = term;
+                contentEl.innerHTML = `
+                    <div class="text-amber-600 dark:text-amber-400 text-sm">
+                        <p class="font-medium">Explain is temporarily cooling down</p>
+                        <p class="text-xs mt-1">Please wait ${cooldownRemaining}s before requesting another explanation.</p>
+                    </div>
+                `;
+                popup.classList.remove('hidden');
+                return;
+            }
 
             // Position the popup near the selection
             popup.style.left = Math.min(x, window.innerWidth - 420) + 'px';
@@ -4068,13 +4288,25 @@
 
                 if (!response.ok) {
                     const err = await response.json();
+                    if (response.status === 429) {
+                        setExplainCooldown(err.retryAfterSeconds || 15);
+                        throw new Error((err.error || 'Rate limited. Please wait and try again.') + ` Retry in ${getExplainCooldownSecondsRemaining()}s.`);
+                    }
                     throw new Error(err.error || 'Failed to explain term');
                 }
 
                 const data = await response.json();
                 const formattedExplanation = beautifyGeneratedMarkdown(data.explanation || '');
                 const cleanExplanation = stripReadableFrameMarkers(formattedExplanation);
-                currentExplanation = { term, explanation: cleanExplanation, sourceTopicTitle, sourceContext };
+                currentExplanation = {
+                    term,
+                    explanation: cleanExplanation,
+                    sourceTopicTitle,
+                    sourceContext,
+                    modelUsed: data.model || null
+                };
+
+                const responseModelLabel = data.modelLabel || getAIModelLabel(data.model) || getActiveAIModelLabel();
 
                 configureMarked();
                 let rendered;
@@ -4091,7 +4323,7 @@
                             <i data-lucide="bookmark-plus" class="w-3 h-3"></i>
                             <span>Save for Review</span>
                         </button>
-                        <span class="text-xs text-gray-400">Gemini 2.5 Flash</span>
+                        <span class="text-xs text-gray-400">${escapeHtml(responseModelLabel)}</span>
                     </div>
                 `;
 
@@ -4133,7 +4365,8 @@
                         term: currentExplanation.term,
                         explanation: currentExplanation.explanation,
                         sourceTopicTitle: currentExplanation.sourceTopicTitle,
-                        sourceContext: currentExplanation.sourceContext
+                        sourceContext: currentExplanation.sourceContext,
+                        modelUsed: currentExplanation.modelUsed
                     })
                 });
 
@@ -4918,10 +5151,16 @@
         }
 
         function copyCodeFullscreen(btn) {
-            const codeEl = document.getElementById('code-fullscreen-code');
-            if (!codeEl) return;
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            if (!overlay) return;
 
-            navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+            const isEditMode = overlay.dataset.editMode === 'true';
+            const editor = document.getElementById('code-fullscreen-editor');
+            const codeEl = document.getElementById('code-fullscreen-code');
+            const textToCopy = isEditMode ? (editor?.value || '') : (codeEl?.textContent || '');
+            if (!textToCopy) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
                 if (!btn) return;
                 const original = btn.textContent;
                 btn.textContent = 'Copied!';
@@ -4938,6 +5177,163 @@
             const noWrapEnabled = pre.classList.toggle('no-wrap');
             if (btn) {
                 btn.textContent = noWrapEnabled ? 'Wrap: Off' : 'Wrap: On';
+            }
+        }
+
+        function toggleCodeFullscreenEdit(btn) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const pre = document.getElementById('code-fullscreen-pre');
+            const codeEl = document.getElementById('code-fullscreen-code');
+            const editor = document.getElementById('code-fullscreen-editor');
+            const validateBtn = document.getElementById('code-fullscreen-validate-btn');
+            const resetBtn = document.getElementById('code-fullscreen-reset-btn');
+            const feedback = document.getElementById('code-fullscreen-feedback');
+            if (!overlay || !pre || !codeEl || !editor || !btn) return;
+
+            const enableEdit = overlay.dataset.editMode !== 'true';
+
+            if (enableEdit) {
+                overlay.dataset.editMode = 'true';
+                editor.value = codeEl.textContent || '';
+                pre.classList.add('hidden');
+                editor.classList.add('active');
+                btn.textContent = 'View';
+                if (validateBtn) validateBtn.style.display = 'inline-block';
+                if (resetBtn) resetBtn.style.display = 'inline-block';
+                if (feedback) {
+                    feedback.className = 'code-fullscreen-feedback';
+                    feedback.innerHTML = '';
+                }
+                editor.focus();
+                return;
+            }
+
+            overlay.dataset.editMode = 'false';
+            const updatedCode = editor.value || '';
+            codeEl.textContent = updatedCode;
+            pre.classList.remove('hidden');
+            editor.classList.remove('active');
+            btn.textContent = 'Edit';
+            if (validateBtn) validateBtn.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'none';
+            if (feedback) {
+                feedback.className = 'code-fullscreen-feedback';
+                feedback.innerHTML = '';
+            }
+
+            if (window.hljs && codeEl.className && codeEl.className.includes('language-')) {
+                window.hljs.highlightElement(codeEl);
+            }
+        }
+
+        function resetCodeFullscreenEdits() {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            const feedback = document.getElementById('code-fullscreen-feedback');
+            if (!overlay || !editor) return;
+            if (overlay.dataset.editMode !== 'true') {
+                showErrorMessage('Reset is available only in Edit mode.');
+                return;
+            }
+
+            editor.value = overlay.dataset.originalCode || '';
+            if (feedback) {
+                feedback.className = 'code-fullscreen-feedback';
+                feedback.innerHTML = '';
+            }
+            showSuccessMessage('Editor reset to original code block.');
+        }
+
+        function renderCodeValidationFeedback(result) {
+            const feedback = document.getElementById('code-fullscreen-feedback');
+            if (!feedback) return;
+
+            const isValid = !!result?.isValid;
+            const mode = result?.mode || 'simulated';
+            const engine = result?.engine || 'validator';
+            const summary = result?.summary || (isValid ? 'Validation passed.' : 'Validation found issues.');
+            const errors = Array.isArray(result?.errors) ? result.errors : [];
+            const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+            const hints = Array.isArray(result?.hints) ? result.hints : [];
+
+            const badgeClass = mode === 'real'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+
+            const renderList = (title, items) => {
+                if (!items || items.length === 0) return '';
+                return `
+                    <div class="mt-2">
+                        <p class="font-semibold">${escapeHtml(title)}</p>
+                        <ul class="code-validation-list">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                    </div>
+                `;
+            };
+
+            feedback.className = `code-fullscreen-feedback show ${isValid ? 'valid' : 'invalid'}`;
+            feedback.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold">${isValid ? 'Validation Passed' : 'Validation Issues Found'}</p>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full ${badgeClass}">${escapeHtml(mode.toUpperCase())}</span>
+                </div>
+                <p class="mt-1 opacity-90">${escapeHtml(summary)}</p>
+                <p class="mt-1 text-[11px] opacity-80">Engine: ${escapeHtml(engine)}</p>
+                ${renderList('Errors', errors)}
+                ${renderList('Warnings', warnings)}
+                ${renderList('Educational Hints', hints)}
+                <p class="mt-2 text-[11px] opacity-75">Validation runs only while Edit mode is active.</p>
+            `;
+        }
+
+        async function validateCodeFullscreen(btn) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            if (!overlay || !editor) return;
+
+            if (overlay.dataset.editMode !== 'true') {
+                showErrorMessage('Validation is available only in Edit mode.');
+                return;
+            }
+
+            const code = editor.value || '';
+            if (!code.trim()) {
+                showErrorMessage('Add code in Edit mode before validating.');
+                return;
+            }
+
+            const originalButtonText = btn ? btn.textContent : 'Validate';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Validating...';
+            }
+
+            try {
+                const response = await fetch('/api/code/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        language: overlay.dataset.language || 'code',
+                        code,
+                        editMode: true
+                    })
+                });
+
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Validation failed.');
+                }
+
+                renderCodeValidationFeedback(payload);
+                if (payload.isValid) {
+                    showSuccessMessage('Validation passed. Great progress!');
+                }
+            } catch (error) {
+                showErrorMessage('Validation error: ' + error.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalButtonText;
+                }
             }
         }
 
@@ -4966,6 +5362,9 @@
                 + '</div>'
                 + '<div class="code-fullscreen-actions">'
                 + '<button class="code-fullscreen-btn" onclick="toggleCodeFullscreenWrap(this)">Wrap: On</button>'
+                + '<button class="code-fullscreen-btn" id="code-fullscreen-edit-btn" onclick="toggleCodeFullscreenEdit(this)">Edit</button>'
+                + '<button class="code-fullscreen-btn" id="code-fullscreen-validate-btn" onclick="validateCodeFullscreen(this)" style="display:none;">Validate</button>'
+                + '<button class="code-fullscreen-btn" id="code-fullscreen-reset-btn" onclick="resetCodeFullscreenEdits()" style="display:none;">Reset</button>'
                 + '<button class="code-fullscreen-btn" onclick="copyCodeFullscreen(this)">Copy</button>'
                 + '<button class="code-fullscreen-btn danger" onclick="closeCodeFullscreen()">Close</button>'
                 + '</div>';
@@ -4982,11 +5381,26 @@
             fullCode.className = codeEl.className || (safeLanguage ? `language-${safeLanguage}` : '');
             fullCode.textContent = codeEl.textContent || '';
 
+            const editor = document.createElement('textarea');
+            editor.id = 'code-fullscreen-editor';
+            editor.className = 'code-fullscreen-editor';
+            editor.setAttribute('spellcheck', 'false');
+            editor.value = fullCode.textContent;
+
+            const feedback = document.createElement('div');
+            feedback.id = 'code-fullscreen-feedback';
+            feedback.className = 'code-fullscreen-feedback';
+
             pre.appendChild(fullCode);
             body.appendChild(pre);
+            body.appendChild(editor);
+            body.appendChild(feedback);
             overlay.appendChild(header);
             overlay.appendChild(body);
             document.body.appendChild(overlay);
+            overlay.dataset.language = safeLanguage;
+            overlay.dataset.editMode = 'false';
+            overlay.dataset.originalCode = fullCode.textContent || '';
 
             const escHandler = (e) => {
                 if (e.key === 'Escape') {
