@@ -552,6 +552,16 @@
         .markdown-content .code-block-wrapper pre {
             background: #1E1E1E !important;
         }
+
+        .markdown-content .code-block-wrapper pre.code-pan-enabled {
+            cursor: grab;
+        }
+
+        .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging,
+        .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging code {
+            cursor: grabbing;
+            user-select: none;
+        }
         
         /* Content area padding */
         .preview-content-area {
@@ -3655,7 +3665,7 @@
             try {
                 renderedContent = typeof marked !== 'undefined' ? marked.parse(formattedMarkdown) : formattedMarkdown;
             } catch (e) {
-                renderedContent = '<pre>' + escapeHtml(formattedMarkdown) + '</pre>';
+                renderedContent = '<div class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">' + escapeHtml(formattedMarkdown) + '</div>';
             }
 
             const generatedDate = generatedAt ? new Date(generatedAt).toLocaleString() : 'Unknown';
@@ -3722,6 +3732,7 @@
             setTimeout(() => {
                 const mcDiv = document.querySelector('#ai-content-display .markdown-content');
                 postProcessCodeBlocks(mcDiv);
+                enableCodeBlockDragPan(mcDiv);
                 if (window.hljs) {
                     document.querySelectorAll('#file-preview-content .code-block-wrapper pre code').forEach((block) => {
                         window.hljs.highlightElement(block);
@@ -3935,6 +3946,7 @@
                 setTimeout(() => {
                     const mcDiv = contentEl.querySelector('.markdown-content');
                     postProcessCodeBlocks(mcDiv);
+                    enableCodeBlockDragPan(mcDiv);
                     if (window.hljs) {
                         contentEl.querySelectorAll('.code-block-wrapper pre code').forEach(block => window.hljs.highlightElement(block));
                     }
@@ -4256,7 +4268,10 @@
             setTimeout(() => {
                 lucide.createIcons();
                 const mcDivs = content.querySelectorAll('.markdown-content');
-                mcDivs.forEach(mc => postProcessCodeBlocks(mc));
+                mcDivs.forEach(mc => {
+                    postProcessCodeBlocks(mc);
+                    enableCodeBlockDragPan(mc);
+                });
                 if (window.hljs) {
                     content.querySelectorAll('.code-block-wrapper pre code').forEach(block => window.hljs.highlightElement(block));
                 }
@@ -4364,11 +4379,98 @@
             return sectionCount;
         }
 
+        const TEXTUAL_FENCE_LANGUAGES = new Set(['md', 'markdown', 'mdx', 'text', 'txt', 'plain', 'plaintext']);
+
+        function looksLikeStructuredCommunication(content) {
+            if (!content) return false;
+
+            const lower = content.toLowerCase();
+            const markers = [
+                'subject:',
+                'problem:',
+                'impact:',
+                'action taken',
+                'proposed solution',
+                'timeline impact',
+                'next steps:'
+            ];
+
+            let markerHits = 0;
+            markers.forEach((marker) => {
+                if (lower.includes(marker)) {
+                    markerHits++;
+                }
+            });
+
+            const boldLabelMatches = content.match(/\*\*[A-Za-z][^*\n:]{1,40}:\*\*/g);
+            if (boldLabelMatches && boldLabelMatches.length >= 2) {
+                return true;
+            }
+
+            return markerHits >= 3 || countCommunicationSections(content) >= 3;
+        }
+
+        function unwrapTopLevelTextFence(content) {
+            if (!content) return content;
+
+            const topLevelFenceMatch = content.match(/^`{3,}([a-zA-Z0-9_+-]*)[ \t]*\n([\s\S]*?)\n`{3,}$/);
+            if (!topLevelFenceMatch) {
+                return content;
+            }
+
+            const language = (topLevelFenceMatch[1] || '').trim().toLowerCase();
+            const body = (topLevelFenceMatch[2] || '').trim();
+            if (!body) {
+                return '';
+            }
+
+            if (TEXTUAL_FENCE_LANGUAGES.has(language)) {
+                return body;
+            }
+
+            if (!language && looksLikeStructuredCommunication(body)) {
+                return body;
+            }
+
+            return content;
+        }
+
+        function stripCommonIndentationIfStructured(content) {
+            if (!looksLikeStructuredCommunication(content)) {
+                return content;
+            }
+
+            const lines = content.split('\n');
+            const nonEmptyLines = lines.filter((line) => line.trim().length > 0);
+            if (nonEmptyLines.length === 0) {
+                return content;
+            }
+
+            const commonIndent = Math.min(...nonEmptyLines.map((line) => {
+                const indentMatch = line.match(/^[ \t]+/);
+                return indentMatch ? indentMatch[0].length : 0;
+            }));
+
+            if (commonIndent < 2) {
+                return content;
+            }
+
+            return lines.map((line) => {
+                if (line.trim().length === 0) {
+                    return '';
+                }
+                return line.slice(Math.min(commonIndent, line.length));
+            }).join('\n');
+        }
+
         function beautifyGeneratedMarkdown(content) {
             if (typeof content !== 'string') return '';
 
-            const normalized = content.replace(/\r\n?/g, '\n').trim();
+            let normalized = content.replace(/\r\n?/g, '\n').trim();
             if (!normalized) return '';
+
+            normalized = unwrapTopLevelTextFence(normalized);
+            normalized = stripCommonIndentationIfStructured(normalized);
 
             const fencedBlocks = [];
             let working = normalized.replace(/```[\s\S]*?```/g, (block) => {
@@ -4559,6 +4661,59 @@
             
             // Render any Mermaid diagrams in the container
             renderMermaidDiagrams(container);
+        }
+
+        function enableCodeBlockDragPan(container) {
+            if (!container) return;
+
+            container.querySelectorAll('.code-block-wrapper pre').forEach((pre) => {
+                if (pre.dataset.dragPanBound === 'true') return;
+
+                pre.dataset.dragPanBound = 'true';
+                pre.classList.add('code-pan-enabled');
+
+                let isDragging = false;
+                let startX = 0;
+                let startY = 0;
+                let startScrollLeft = 0;
+                let startScrollTop = 0;
+
+                const onMouseMove = (event) => {
+                    if (!isDragging) return;
+
+                    pre.scrollLeft = startScrollLeft - (event.clientX - startX);
+                    pre.scrollTop = startScrollTop - (event.clientY - startY);
+                    event.preventDefault();
+                };
+
+                const stopDragging = () => {
+                    if (!isDragging) return;
+
+                    isDragging = false;
+                    pre.classList.remove('dragging');
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', stopDragging);
+                };
+
+                pre.addEventListener('mousedown', (event) => {
+                    if (event.button !== 0) return;
+                    if (pre.scrollWidth <= pre.clientWidth && pre.scrollHeight <= pre.clientHeight) return;
+                    if (window.getSelection && window.getSelection().type === 'Range') return;
+
+                    isDragging = true;
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    startScrollLeft = pre.scrollLeft;
+                    startScrollTop = pre.scrollTop;
+                    pre.classList.add('dragging');
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', stopDragging);
+                    event.preventDefault();
+                });
+
+                pre.addEventListener('dragstart', (event) => event.preventDefault());
+            });
         }
 
         // Initialize Mermaid and render diagrams
@@ -5202,7 +5357,10 @@
             setTimeout(() => {
                 // Wrap bare code blocks with ChatGPT-style wrapper
                 const mcDivs = document.querySelectorAll('#file-preview-content .markdown-content');
-                mcDivs.forEach(mc => postProcessCodeBlocks(mc));
+                mcDivs.forEach(mc => {
+                    postProcessCodeBlocks(mc);
+                    enableCodeBlockDragPan(mc);
+                });
                 // Highlight all code blocks in wrapper first, then standalone
                 if (window.hljs) {
                     document.querySelectorAll('#file-preview-content .code-block-wrapper pre code').forEach((block) => {
