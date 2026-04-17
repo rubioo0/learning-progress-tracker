@@ -4382,6 +4382,88 @@
 
         const TEXTUAL_FENCE_LANGUAGES = new Set(['md', 'markdown', 'mdx', 'text', 'txt', 'plain', 'plaintext']);
 
+        function looksLikeSourceCode(content) {
+            if (!content) return false;
+
+            const text = String(content);
+            const codeSignalPatterns = [
+                /(^|\n)\s*(import|from|export|const|let|var|function|class|interface|type)\b/i,
+                /(^|\n)\s*(public|private|protected|internal|namespace|using)\b/i,
+                /(^|\n)\s*(if|for|while|switch|try|catch|return)\b/i,
+                /(^|\n)\s*(def|async\s+def|lambda)\b/i,
+                /(^|\n)\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i,
+                /[{};][ \t]*$/m,
+                /=>|::|===|!==|\bnull\b|\bundefined\b/i
+            ];
+
+            let signalCount = 0;
+            codeSignalPatterns.forEach((pattern) => {
+                if (pattern.test(text)) {
+                    signalCount++;
+                }
+            });
+
+            if (signalCount >= 2) {
+                return true;
+            }
+
+            const lines = text.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
+            if (lines.length === 0) {
+                return false;
+            }
+
+            const punctuatedCodeLines = lines.filter((line) => /[{};]/.test(line)).length;
+            return punctuatedCodeLines >= Math.max(2, Math.ceil(lines.length * 0.3));
+        }
+
+        function looksLikeNarrativeMarkdown(content) {
+            if (!content) return false;
+
+            const text = String(content);
+            if (looksLikeSourceCode(text)) {
+                return false;
+            }
+
+            const wordCount = (text.match(/\b[\w'-]+\b/g) || []).length;
+            const sentenceCount = (text.match(/[.!?](?:\s|$)/g) || []).length;
+            const markdownSignals = [
+                /^#{1,6}\s+/m,
+                /^[-*]\s+/m,
+                /^\d+\.\s+/m,
+                /^\*\*[^*\n]+\*\*/m,
+                /`[^`]+`/
+            ].reduce((count, pattern) => count + (pattern.test(text) ? 1 : 0), 0);
+
+            return wordCount >= 40 && (sentenceCount >= 2 || markdownSignals >= 2);
+        }
+
+        function shouldUnwrapFencedBlock(language, body) {
+            const lang = (language || '').trim().toLowerCase();
+            const normalizedBody = (body || '').trim();
+
+            if (!normalizedBody) {
+                return true;
+            }
+
+            if (looksLikeStructuredCommunication(normalizedBody)) {
+                return true;
+            }
+
+            if (TEXTUAL_FENCE_LANGUAGES.has(lang)) {
+                return !looksLikeSourceCode(normalizedBody);
+            }
+
+            if (lang === 'code') {
+                return !looksLikeSourceCode(normalizedBody);
+            }
+
+            if (!lang && looksLikeNarrativeMarkdown(normalizedBody)) {
+                return true;
+            }
+
+            return false;
+        }
+
         function looksLikeStructuredCommunication(content) {
             if (!content) return false;
 
@@ -4425,11 +4507,7 @@
                 return '';
             }
 
-            if (TEXTUAL_FENCE_LANGUAGES.has(language)) {
-                return body;
-            }
-
-            if (!language && looksLikeStructuredCommunication(body)) {
+            if (shouldUnwrapFencedBlock(language, body)) {
                 return body;
             }
 
@@ -4474,7 +4552,13 @@
             normalized = stripCommonIndentationIfStructured(normalized);
 
             const fencedBlocks = [];
-            let working = normalized.replace(/```[\s\S]*?```/g, (block) => {
+            let working = normalized.replace(/```([a-zA-Z0-9_+-]*)[ \t]*\n([\s\S]*?)```/g, (block, language, body) => {
+                const fencedBody = (body || '').trim();
+
+                if (shouldUnwrapFencedBlock(language, fencedBody)) {
+                    return stripCommonIndentationIfStructured(fencedBody);
+                }
+
                 const token = `@@CODE_BLOCK_${fencedBlocks.length}@@`;
                 fencedBlocks.push(block);
                 return token;
