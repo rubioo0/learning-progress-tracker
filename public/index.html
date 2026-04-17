@@ -553,15 +553,27 @@
             background: #1E1E1E !important;
         }
 
-        .markdown-content .code-block-wrapper pre.code-pan-enabled {
+        #file-preview-content pre.code-pan-enabled,
+        .markdown-content pre.code-pan-enabled {
             cursor: grab;
             touch-action: none;
             max-height: min(60vh, 42rem);
             overflow: auto;
         }
 
-        .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging,
-        .markdown-content .code-block-wrapper pre.code-pan-enabled.dragging code {
+        #file-preview-content pre.code-pan-enabled code,
+        .markdown-content pre.code-pan-enabled code {
+            white-space: pre !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+            display: inline-block;
+            min-width: 100%;
+        }
+
+        #file-preview-content pre.code-pan-enabled.dragging,
+        #file-preview-content pre.code-pan-enabled.dragging code,
+        .markdown-content pre.code-pan-enabled.dragging,
+        .markdown-content pre.code-pan-enabled.dragging code {
             cursor: grabbing;
             user-select: none;
         }
@@ -3719,7 +3731,7 @@
                     <!-- Raw view (hidden by default) -->
                     <div id="ai-raw-content" class="hidden">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(formattedMarkdown)}</code></pre>
+                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(formattedMarkdown)}</code></pre>
                         </div>
                     </div>
 
@@ -4798,6 +4810,23 @@
                     pre.removeEventListener('pointercancel', stopDragging);
                 };
 
+                pre.addEventListener('wheel', (event) => {
+                    const canX = pre.scrollWidth > pre.clientWidth;
+                    const canY = pre.scrollHeight > pre.clientHeight;
+                    if (!canX) return;
+
+                    if (Math.abs(event.deltaX) > 0) {
+                        pre.scrollLeft += event.deltaX;
+                        event.preventDefault();
+                        return;
+                    }
+
+                    if (event.shiftKey || !canY) {
+                        pre.scrollLeft += event.deltaY;
+                        event.preventDefault();
+                    }
+                }, { passive: false });
+
                 pre.addEventListener('pointerdown', (event) => {
                     if (event.pointerType !== 'touch' && event.button !== 0) return;
                     if (pre.scrollWidth <= pre.clientWidth && pre.scrollHeight <= pre.clientHeight) return;
@@ -5426,7 +5455,7 @@
                     }
                     contentDisplay = `
                         <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</code></pre>
+                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</code></pre>
                         </div>
                     `;
                 }
@@ -5452,7 +5481,7 @@
                             ${isMarkdown ? `
                                 <div id="raw-content" class="hidden">
                                     <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
-                                        <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</code></pre>
+                                        <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</code></pre>
                                     </div>
                                 </div>
                             ` : ''}
