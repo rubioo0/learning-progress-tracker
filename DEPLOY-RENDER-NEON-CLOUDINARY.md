@@ -50,11 +50,16 @@ Already defined defaults:
 - STORAGE_BACKEND=cloudinary
 - AI_FILE_PERSISTENCE=false
 - AI_ALLOW_MODEL_FALLBACK=false
+- AI_GENERATE_MAX_OUTPUT_TOKENS=12288
+- AI_GENERATE_REDUCED_OUTPUT_TOKENS=8192
+- AI_EXPLAIN_MAX_OUTPUT_TOKENS=2048
 - CODE_VALIDATION_ENABLED=false
 - REQUIRE_PROD_EXTERNAL_SERVICES=true
 
 If you want automatic fallback behavior (allow downgrade from Gemini 2.5 Flash to Flash Lite under overload), set:
 - AI_ALLOW_MODEL_FALLBACK=true
+
+Note: topic generation uses a much heavier request profile than inline "Explain". In strict mode (`AI_ALLOW_MODEL_FALLBACK=false`), Explain can succeed while topic generation fails with 503 during temporary model overload.
 
 ## 2.1 Deploy from feature branch (no main merge required)
 

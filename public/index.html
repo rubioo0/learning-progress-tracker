@@ -1913,7 +1913,7 @@
                         <li>• Click the <strong>sparkle icon</strong> on any topic to generate content</li>
                         <li>• Content is generated once and cached for future views</li>
                         <li>• If generation fails or is truncated, you can regenerate</li>
-                        <li>• Uses <strong id="ai-current-model-label">Gemini</strong> with automatic model fallback on overload</li>
+                        <li>• Uses <strong id="ai-current-model-label">Gemini</strong> <span id="ai-fallback-mode-note">(fallback mode loading...)</span></li>
                     </ul>
                 </div>
                 
@@ -4030,6 +4030,16 @@
                 aiStatusCache = status;
                 renderAIModelSelector(status);
 
+                const fallbackModeNote = document.getElementById('ai-fallback-mode-note');
+                if (fallbackModeNote) {
+                    fallbackModeNote.textContent = status.allowModelFallback
+                        ? 'with automatic fallback on overload.'
+                        : 'in strict mode (no fallback on overload).';
+                    fallbackModeNote.className = status.allowModelFallback
+                        ? 'text-blue-700 dark:text-blue-400'
+                        : 'text-amber-700 dark:text-amber-400';
+                }
+
                 const apiKeyInput = document.getElementById('ai-api-key-input');
                 const apiKeyHelp = document.getElementById('ai-api-key-help');
                 if (apiKeyInput) {
@@ -4081,6 +4091,12 @@
                 console.error('Error loading AI status:', err);
                 aiStatusCache = normalizeAIStatus(aiStatusCache);
                 renderAIModelSelector(aiStatusCache);
+
+                const fallbackModeNote = document.getElementById('ai-fallback-mode-note');
+                if (fallbackModeNote) {
+                    fallbackModeNote.textContent = 'with automatic fallback on overload.';
+                    fallbackModeNote.className = 'text-blue-700 dark:text-blue-400';
+                }
                 showErrorMessage('Could not load AI status from server. Showing default model options.');
             }
         }

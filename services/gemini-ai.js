@@ -42,6 +42,18 @@ class GeminiAIService {
             maxDelayMs: Number(config.AI_RETRY?.maxDelayMs) || 15000,
             jitterMs: Number(config.AI_RETRY?.jitterMs) || 700
         };
+        this.generationLimits = {
+            generateMaxOutputTokens: Math.max(2048, Number(config.AI_GENERATE_MAX_OUTPUT_TOKENS) || 12288),
+            generateReducedOutputTokens: Math.max(2048, Number(config.AI_GENERATE_REDUCED_OUTPUT_TOKENS) || 8192),
+            explainMaxOutputTokens: Math.max(512, Number(config.AI_EXPLAIN_MAX_OUTPUT_TOKENS) || 2048)
+        };
+
+        if (this.generationLimits.generateReducedOutputTokens >= this.generationLimits.generateMaxOutputTokens) {
+            this.generationLimits.generateReducedOutputTokens = Math.max(
+                2048,
+                Math.floor(this.generationLimits.generateMaxOutputTokens * 0.67)
+            );
+        }
         this.allowModelFallback = config.AI_ALLOW_MODEL_FALLBACK !== false;
         this.modelConfig = this._loadModelConfig();
         this.model = this.modelConfig.activeModel;
@@ -474,6 +486,11 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         }
 
         if (lastError && this._isRetryableOverloadError(lastError.message || '')) {
+            if (modelSequence.length <= 1) {
+                const modelLabel = this.getModelLabel(modelSequence[0] || this.modelConfig.activeModel);
+                throw new Error(`${modelLabel} is temporarily overloaded (503). Automatic retries were exhausted. Please try again in a few minutes.`);
+            }
+
             throw new Error('Gemini is temporarily overloaded (503) on all configured models. Automatic retries were exhausted. Please try again in a few minutes.');
         }
 
@@ -489,15 +506,41 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         }
 
         const prompt = this.buildPrompt(topic);
-        const generated = await this._generateWithFallback(
-            prompt,
-            {
-                maxOutputTokens: 65536,
-                temperature: 0.8
-            },
-            'generate',
-            this.retryConfig.maxRetriesPerModel
-        );
+        const primaryGenerationConfig = {
+            maxOutputTokens: this.generationLimits.generateMaxOutputTokens,
+            temperature: 0.8
+        };
+
+        let generated;
+        let usedReducedOutputProfile = false;
+
+        try {
+            generated = await this._generateWithFallback(
+                prompt,
+                primaryGenerationConfig,
+                'generate',
+                this.retryConfig.maxRetriesPerModel
+            );
+        } catch (error) {
+            const message = error.message || '';
+            const retryWithReducedProfile = this._isRetryableOverloadError(message)
+                || message.includes('temporarily overloaded (503)');
+
+            if (!retryWithReducedProfile) {
+                throw error;
+            }
+
+            generated = await this._generateWithFallback(
+                prompt,
+                {
+                    maxOutputTokens: this.generationLimits.generateReducedOutputTokens,
+                    temperature: 0.75
+                },
+                'generate-reduced',
+                Math.max(2, this.retryConfig.maxRetriesPerModel - 1)
+            );
+            usedReducedOutputProfile = true;
+        }
 
         const response = generated.result.response;
         const generatedText = response.text();
@@ -524,6 +567,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                 totalTokens: usage.totalTokenCount || 0,
                 thoughtsTokenCount: usage.thoughtsTokenCount || 0
             },
+            generationProfile: usedReducedOutputProfile ? 'reduced-output' : 'standard',
             stopReason: finishReason || 'STOP',
             isTruncated,
             generatedAt: new Date().toISOString()
@@ -542,7 +586,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         const generated = await this._generateWithFallback(
             prompt,
             {
-                maxOutputTokens: 2048,
+                maxOutputTokens: this.generationLimits.explainMaxOutputTokens,
                 temperature: 0.6
             },
             'explain',
