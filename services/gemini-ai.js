@@ -197,11 +197,21 @@ class GeminiAIService {
     }
 
     setApiKey(key) {
-        this.apiKey = key;
+        const nextKey = String(key || '').trim();
+
+        if (!nextKey || nextKey.length < 10) {
+            throw new Error('API key is missing or too short.');
+        }
+
+        if (process.env.GEMINI_API_KEY) {
+            throw new Error('API key is managed by environment variable GEMINI_API_KEY. Update server environment settings and redeploy to change it.');
+        }
+
+        this.apiKey = nextKey;
 
         if (this.filePersistenceEnabled) {
             try {
-                fs.writeFileSync(API_KEY_FILE, key, 'utf8');
+                fs.writeFileSync(API_KEY_FILE, nextKey, 'utf8');
             } catch (err) {
                 console.error('Error saving API key:', err.message);
             }
@@ -211,6 +221,7 @@ class GeminiAIService {
     }
 
     getApiKeyStatus() {
+        const keyLockedByEnvironment = Boolean(process.env.GEMINI_API_KEY);
         const source = process.env.GEMINI_API_KEY
             ? 'environment'
             : (this.apiKey ? (this.filePersistenceEnabled ? 'file' : 'runtime') : 'none');
@@ -218,6 +229,7 @@ class GeminiAIService {
         return {
             configured: !!this.apiKey,
             source,
+            keyLockedByEnvironment,
             maskedKey: this.apiKey ? this.apiKey.slice(0, 6) + '...' + this.apiKey.slice(-4) : null,
             model: this.modelConfig.activeModel,
             activeModel: this.modelConfig.activeModel,

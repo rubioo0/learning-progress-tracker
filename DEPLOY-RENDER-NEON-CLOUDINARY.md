@@ -41,6 +41,8 @@ Required:
 - CLOUDINARY_API_SECRET
 - GEMINI_API_KEY
 
+Note: when `GEMINI_API_KEY` is set in Render environment variables, the in-app "Save API key" action is intentionally read-only/blocked. Change the key in Render and redeploy.
+
 Already defined defaults:
 - DATABASE_PROVIDER=postgres
 - FORCE_SQLITE=false

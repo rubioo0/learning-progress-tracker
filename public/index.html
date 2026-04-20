@@ -1891,7 +1891,7 @@
                             <i data-lucide="eye" class="w-4 h-4" id="api-key-eye-icon"></i>
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Your key is stored locally and never shared.</p>
+                    <p id="ai-api-key-help" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Your key is stored locally and never shared.</p>
                 </div>
 
                 <div>
@@ -4029,6 +4029,28 @@
                 const status = normalizeAIStatus(payload);
                 aiStatusCache = status;
                 renderAIModelSelector(status);
+
+                const apiKeyInput = document.getElementById('ai-api-key-input');
+                const apiKeyHelp = document.getElementById('ai-api-key-help');
+                if (apiKeyInput) {
+                    apiKeyInput.value = '';
+                    apiKeyInput.disabled = !!status.keyLockedByEnvironment;
+                    apiKeyInput.placeholder = status.keyLockedByEnvironment
+                        ? 'Environment-managed key (read-only here)'
+                        : 'Paste API key';
+                    apiKeyInput.classList.toggle('opacity-60', !!status.keyLockedByEnvironment);
+                    apiKeyInput.classList.toggle('cursor-not-allowed', !!status.keyLockedByEnvironment);
+                }
+
+                if (apiKeyHelp) {
+                    if (status.keyLockedByEnvironment) {
+                        apiKeyHelp.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1';
+                        apiKeyHelp.textContent = 'This server uses GEMINI_API_KEY from environment. Change it in Render environment variables and redeploy.';
+                    } else {
+                        apiKeyHelp.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+                        apiKeyHelp.textContent = 'Your key is stored locally and never shared.';
+                    }
+                }
                 
                 const statusEl = document.getElementById('ai-key-status');
                 if (status.configured) {
@@ -4040,6 +4062,7 @@
                         </div>
                         <p class="text-xs text-green-600 dark:text-green-400 mt-1">Key: ${status.maskedKey} (source: ${status.source})</p>
                         <p class="text-xs text-green-600 dark:text-green-400">Active model: ${getAIModelLabel(status.activeModel || status.model)}</p>
+                        ${status.keyLockedByEnvironment ? '<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">API key is environment-managed and cannot be changed from this UI.</p>' : ''}
                     `;
                     statusEl.classList.remove('hidden');
                 } else {
@@ -4085,9 +4108,15 @@
             const modelSelect = document.getElementById('ai-model-select');
             const selectedModel = modelSelect ? modelSelect.value : null;
             const previousModel = aiStatusCache?.activeModel || aiStatusCache?.model;
+            const keyLockedByEnvironment = Boolean(aiStatusCache?.keyLockedByEnvironment);
 
             if (apiKey && apiKey.length < 10) {
                 showErrorMessage('API key looks too short. Please paste your full key from aistudio.google.com/apikey.');
+                return;
+            }
+
+            if (keyLockedByEnvironment && apiKey) {
+                showErrorMessage('API key is managed by server environment. Update GEMINI_API_KEY in Render environment variables and redeploy.');
                 return;
             }
 

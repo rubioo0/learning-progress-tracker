@@ -355,8 +355,15 @@ app.post('/api/ai/api-key', (req, res) => {
     if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 10) {
         return res.status(400).json({ error: 'API key is missing or too short.' });
     }
-    geminiAI.setApiKey(apiKey.trim());
-    res.json({ message: 'API key saved successfully', status: geminiAI.getApiKeyStatus() });
+
+    try {
+        geminiAI.setApiKey(apiKey.trim());
+        res.json({ message: 'API key saved successfully', status: geminiAI.getApiKeyStatus() });
+    } catch (error) {
+        const message = error.message || 'Failed to save API key.';
+        const isEnvManaged = message.includes('managed by environment variable');
+        res.status(isEnvManaged ? 409 : 400).json({ error: message, status: geminiAI.getApiKeyStatus() });
+    }
 });
 
 // Set active AI model
