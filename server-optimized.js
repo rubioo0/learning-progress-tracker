@@ -496,6 +496,7 @@ app.post('/api/topics/:id/generate-content', async (req, res) => {
             attemptedModels: result.attemptedModels || [result.model],
             generationProfile: result.generationProfile || 'standard',
             maxOutputTokensRequested: result.maxOutputTokensRequested || null,
+            strictOverloadModelEscapeUsed: !!result.strictOverloadModelEscapeUsed,
             stopReason: result.stopReason || 'STOP',
             usage: result.usage || null
         };
@@ -658,6 +659,7 @@ async function processBatchQueue() {
                 attemptedModels: result.attemptedModels || [result.model],
                 generationProfile: result.generationProfile || 'standard',
                 maxOutputTokensRequested: result.maxOutputTokensRequested || null,
+                strictOverloadModelEscapeUsed: !!result.strictOverloadModelEscapeUsed,
                 stopReason: result.stopReason || 'STOP',
                 usage: result.usage || null,
                 batch: true

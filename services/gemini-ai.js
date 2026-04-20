@@ -38,7 +38,7 @@ class GeminiAIService {
         this.filePersistenceEnabled = !!config.AI_FILE_PERSISTENCE;
         this.availableModels = this._normalizeModelCatalog(config.AI_MODELS);
         this.retryConfig = {
-            maxRetriesPerModel: Number(config.AI_RETRY?.maxRetriesPerModel) || 3,
+            maxRetriesPerModel: Number(config.AI_RETRY?.maxRetriesPerModel) || 4,
             baseDelayMs: Number(config.AI_RETRY?.baseDelayMs) || 3000,
             maxDelayMs: Number(config.AI_RETRY?.maxDelayMs) || 15000,
             jitterMs: Number(config.AI_RETRY?.jitterMs) || 700
@@ -64,6 +64,7 @@ class GeminiAIService {
             );
         }
         this.allowModelFallback = config.AI_ALLOW_MODEL_FALLBACK !== false;
+        this.allowStrictOverloadModelEscape = config.AI_ALLOW_STRICT_OVERLOAD_MODEL_ESCAPE !== false;
         this.modelConfig = this._loadModelConfig();
         this.model = this.modelConfig.activeModel;
         this.apiKey = this._loadApiKey();
@@ -262,6 +263,7 @@ class GeminiAIService {
             activeModelLabel: this.getModelLabel(this.modelConfig.activeModel),
             fallbackOrder: [...this.modelConfig.fallbackOrder],
             allowModelFallback: this.allowModelFallback,
+            allowStrictOverloadModelEscape: this.allowStrictOverloadModelEscape,
             generationLimits: {
                 generateMaxOutputTokens: this.generationLimits.generateMaxOutputTokens,
                 generateReducedOutputTokens: this.generationLimits.generateReducedOutputTokens,
@@ -377,6 +379,42 @@ Use Markdown formatting throughout: headers (##, ###), code blocks with language
     }
 
     /**
+     * Build a compact prompt used only for overload recovery.
+     */
+    buildPromptCompact(topic) {
+        const parsedDesc = this._parseDescription(topic.description || '');
+        const descriptionLines = parsedDesc.descriptions.slice(0, 6);
+        const artifactsLines = parsedDesc.artifacts.slice(0, 4);
+
+        const descriptionSection = descriptionLines.length > 0
+            ? descriptionLines.map((line) => `- ${line}`).join('\n')
+            : '- Cover the topic based on title and practical QA/AQA needs.';
+
+        const artifactsSection = artifactsLines.length > 0
+            ? `\nExpected outcomes:\n${artifactsLines.map((line) => `- ${line}`).join('\n')}`
+            : '';
+
+        const categoryContext = topic.category ? `\nCategory: ${topic.category}` : '';
+        const moduleContext = topic.module ? `\nModule: ${topic.module}` : '';
+
+        return `You are a Senior QA/SDET writing a concise but practical study guide for a Mid-level QA Automation engineer (C# and Python).
+
+Topic: ${topic.title}${categoryContext}${moduleContext}
+
+Topic details:
+${descriptionSection}${artifactsSection}
+
+Create a structured Markdown guide with these sections:
+1. TL;DR
+2. Core concepts and production relevance
+3. Practical implementation steps
+4. One C# example and one Python example
+5. Common pitfalls and best practices
+
+Keep it actionable and avoid unnecessary verbosity. Use headings and fenced code blocks.`;
+    }
+
+    /**
      * Build a prompt for explaining an unknown term/concept (inline learning assistant)
      */
     buildExplainPrompt(term, sourceTopicTitle, sourceContext) {
@@ -446,27 +484,45 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
     }
 
     _computeRetryDelay(attempt) {
-        const linearDelay = this.retryConfig.baseDelayMs * attempt;
-        const cappedDelay = Math.min(linearDelay, this.retryConfig.maxDelayMs);
+        const safeAttempt = Math.max(1, Number(attempt) || 1);
+        const exponentialDelay = this.retryConfig.baseDelayMs * Math.pow(2, safeAttempt - 1);
+        const cappedDelay = Math.min(exponentialDelay, this.retryConfig.maxDelayMs);
         const jitter = Math.floor(Math.random() * (this.retryConfig.jitterMs + 1));
         return cappedDelay + jitter;
     }
 
-    _getModelSequence() {
+    _getModelSequence(allowFallbackOverride = null) {
         const normalized = this._normalizeFallbackOrder(this.modelConfig.fallbackOrder, this.modelConfig.activeModel);
+        const allowFallback = typeof allowFallbackOverride === 'boolean'
+            ? allowFallbackOverride
+            : this.allowModelFallback;
 
-        if (!this.allowModelFallback) {
+        if (!allowFallback) {
             return normalized.length > 0 ? [normalized[0]] : [];
         }
 
         return normalized;
     }
 
-    async _generateWithFallback(prompt, generationConfig, operationLabel, maxRetriesPerModel) {
-        const modelSequence = this._getModelSequence();
+    _getStrictOverloadEscapeModelSequence() {
+        const normalized = this._normalizeFallbackOrder(this.modelConfig.fallbackOrder, this.modelConfig.activeModel);
+        return normalized.filter((modelId) => modelId !== this.modelConfig.activeModel);
+    }
+
+    async _generateWithFallback(prompt, generationConfig, operationLabel, maxRetriesPerModel, options = {}) {
+        const explicitModelSequence = Array.isArray(options.modelSequence)
+            ? options.modelSequence.map((modelId) => String(modelId || '').trim()).filter(Boolean)
+            : null;
+        const modelSequence = explicitModelSequence && explicitModelSequence.length > 0
+            ? explicitModelSequence
+            : this._getModelSequence(options.allowModelFallbackOverride);
         const retries = Number(maxRetriesPerModel) || this.retryConfig.maxRetriesPerModel;
         const attemptLog = [];
         let lastError = null;
+
+        if (modelSequence.length === 0) {
+            throw new Error('No AI models are configured for generation.');
+        }
 
         for (const modelId of modelSequence) {
             for (let attempt = 1; attempt <= retries; attempt++) {
@@ -526,6 +582,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         }
 
         const prompt = this.buildPrompt(topic);
+        const compactPrompt = this.buildPromptCompact(topic);
         const primaryGenerationConfig = {
             maxOutputTokens: this.generationLimits.generateMaxOutputTokens,
             temperature: 0.8
@@ -534,6 +591,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         let generated;
         let generationProfile = 'standard';
         let maxOutputTokensRequested = primaryGenerationConfig.maxOutputTokens;
+        let strictOverloadModelEscapeUsed = false;
 
         try {
             generated = await this._generateWithFallback(
@@ -579,14 +637,50 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                     temperature: 0.65
                 };
 
-                generated = await this._generateWithFallback(
-                    prompt,
-                    emergencyGenerationConfig,
-                    'generate-emergency',
-                    Math.max(1, this.retryConfig.maxRetriesPerModel - 2)
-                );
-                generationProfile = 'emergency-low-output';
-                maxOutputTokensRequested = emergencyGenerationConfig.maxOutputTokens;
+                try {
+                    generated = await this._generateWithFallback(
+                        compactPrompt,
+                        emergencyGenerationConfig,
+                        'generate-emergency',
+                        Math.max(1, this.retryConfig.maxRetriesPerModel - 2)
+                    );
+                    generationProfile = 'emergency-low-output';
+                    maxOutputTokensRequested = emergencyGenerationConfig.maxOutputTokens;
+                } catch (emergencyError) {
+                    const emergencyMessage = emergencyError.message || '';
+                    const retryWithStrictEscape = this.allowStrictOverloadModelEscape
+                        && !this.allowModelFallback
+                        && (this._isRetryableOverloadError(emergencyMessage)
+                            || emergencyMessage.includes('temporarily overloaded (503)'));
+
+                    if (!retryWithStrictEscape) {
+                        throw emergencyError;
+                    }
+
+                    const strictEscapeModelSequence = this._getStrictOverloadEscapeModelSequence();
+                    if (strictEscapeModelSequence.length === 0) {
+                        throw emergencyError;
+                    }
+
+                    const strictEscapeGenerationConfig = {
+                        maxOutputTokens: Math.max(1024, Math.min(this.generationLimits.generateEmergencyOutputTokens, 2048)),
+                        temperature: 0.6
+                    };
+
+                    generated = await this._generateWithFallback(
+                        compactPrompt,
+                        strictEscapeGenerationConfig,
+                        'generate-strict-escape',
+                        Math.max(2, this.retryConfig.maxRetriesPerModel - 2),
+                        {
+                            modelSequence: strictEscapeModelSequence,
+                            allowModelFallbackOverride: true
+                        }
+                    );
+                    generationProfile = 'strict-overload-model-escape';
+                    maxOutputTokensRequested = strictEscapeGenerationConfig.maxOutputTokens;
+                    strictOverloadModelEscapeUsed = true;
+                }
             }
         }
 
@@ -617,6 +711,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
             },
             generationProfile,
             maxOutputTokensRequested,
+            strictOverloadModelEscapeUsed,
             stopReason: finishReason || 'STOP',
             isTruncated,
             generatedAt: new Date().toISOString()
