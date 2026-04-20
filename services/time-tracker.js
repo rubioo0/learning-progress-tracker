@@ -296,21 +296,27 @@ class TimeTrackerService {
         return new Promise((resolve, reject) => {
             let dateFilter = '';
             const params = [userId];
+            let rangeStartIso = null;
 
             switch (dateRange) {
                 case 'today':
-                    dateFilter = `AND date(start_time) = date('now')`;
+                    rangeStartIso = this.getStartOfUtcDayIso();
                     break;
                 case 'week':
-                    dateFilter = `AND start_time >= date('now', '-7 days')`;
+                    rangeStartIso = this.getRelativeUtcIso({ days: -7 });
                     break;
                 case 'month':
-                    dateFilter = `AND start_time >= date('now', '-30 days')`;
+                    rangeStartIso = this.getRelativeUtcIso({ days: -30 });
                     break;
                 case 'all':
                 default:
-                    dateFilter = '';
+                    rangeStartIso = null;
                     break;
+            }
+
+            if (rangeStartIso) {
+                dateFilter = 'AND start_time >= ?';
+                params.push(rangeStartIso);
             }
 
             const query = `
@@ -360,6 +366,12 @@ class TimeTrackerService {
      */
     getCalendarData(userId = 'default_user', monthsBack = 6) {
         return new Promise((resolve, reject) => {
+            const parsedMonthsBack = Number(monthsBack);
+            const safeMonthsBack = Number.isFinite(parsedMonthsBack)
+                ? Math.max(1, Math.floor(parsedMonthsBack))
+                : 6;
+            const rangeStartIso = this.getRelativeUtcIso({ months: -safeMonthsBack });
+
             const query = `
                 SELECT 
                     date(start_time) as date,
@@ -368,13 +380,13 @@ class TimeTrackerService {
                     COALESCE(SUM(CASE WHEN duration_seconds IS NOT NULL THEN duration_seconds ELSE 0 END), 0) as total_seconds
                 FROM time_tracking_sessions 
                 WHERE user_id = ? 
-                  AND start_time >= date('now', '-${monthsBack} months')
+                  AND start_time >= ?
                   AND status != 'cancelled'
                 GROUP BY date(start_time)
                 ORDER BY date DESC
             `;
 
-            this.db.all(query, [userId], (err, rows) => {
+            this.db.all(query, [userId, rangeStartIso], (err, rows) => {
                 if (err) {
                     console.error('Error getting calendar data:', err);
                     return reject(err);
@@ -382,13 +394,14 @@ class TimeTrackerService {
 
                 const calendarData = {};
                 rows.forEach(row => {
-                    const totalMinutes = Math.round(row.total_seconds / 60);
+                    const totalSeconds = Number(row.total_seconds || 0);
+                    const totalMinutes = Math.round(totalSeconds / 60);
                     calendarData[row.date] = {
-                        sessions: row.sessions,
-                        completedSessions: row.completed_sessions,
-                        totalSeconds: row.total_seconds,
+                        sessions: Number(row.sessions || 0),
+                        completedSessions: Number(row.completed_sessions || 0),
+                        totalSeconds,
                         totalMinutes: totalMinutes,
-                        hasActivity: row.total_seconds > 0,
+                        hasActivity: totalSeconds > 0,
                         intensity: this.calculateIntensity(totalMinutes) // For visual representation
                     };
                 });
@@ -406,13 +419,18 @@ class TimeTrackerService {
      */
     cancelSession(sessionId, reason = 'Manual cancellation') {
         return new Promise((resolve, reject) => {
+            const cancellationMeta = JSON.stringify({
+                cancellation_reason: reason,
+                cancelled_at: new Date().toISOString()
+            });
+
             const query = `UPDATE time_tracking_sessions 
                           SET status = 'cancelled', 
-                              session_data = json_set(COALESCE(session_data, '{}'), '$.cancellation_reason', ?),
+                              session_data = ?,
                               updated_at = datetime('now', 'utc')
                           WHERE id = ? AND status = 'active'`;
 
-            this.db.run(query, [reason, sessionId], function(err) {
+            this.db.run(query, [cancellationMeta, sessionId], function(err) {
                 if (err) {
                     console.error('Error cancelling session:', err);
                     return reject(err);
@@ -450,6 +468,34 @@ class TimeTrackerService {
     generateSessionId() {
         // Generate a simple unique ID (you could use uuid if available)
         return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    getStartOfUtcDayIso(referenceDate = new Date()) {
+        const dayStart = new Date(Date.UTC(
+            referenceDate.getUTCFullYear(),
+            referenceDate.getUTCMonth(),
+            referenceDate.getUTCDate(),
+            0,
+            0,
+            0,
+            0
+        ));
+
+        return dayStart.toISOString();
+    }
+
+    getRelativeUtcIso({ days = 0, months = 0 } = {}) {
+        const date = new Date();
+
+        if (months) {
+            date.setUTCMonth(date.getUTCMonth() + months);
+        }
+
+        if (days) {
+            date.setUTCDate(date.getUTCDate() + days);
+        }
+
+        return date.toISOString();
     }
 
     calculateIntensity(minutes) {
@@ -520,11 +566,17 @@ class TimeTrackerService {
      */
     cleanupOldSessions(daysOld = 365) {
         return new Promise((resolve, reject) => {
+            const parsedDaysOld = Number(daysOld);
+            const safeDaysOld = Number.isFinite(parsedDaysOld)
+                ? Math.max(1, Math.floor(parsedDaysOld))
+                : 365;
+            const cutoffIso = this.getRelativeUtcIso({ days: -safeDaysOld });
+
             const query = `DELETE FROM time_tracking_sessions 
-                          WHERE start_time < date('now', '-${daysOld} days')
+                          WHERE start_time < ?
                           AND status IN ('completed', 'cancelled')`;
 
-            this.db.run(query, function(err) {
+            this.db.run(query, [cutoffIso], function(err) {
                 if (err) {
                     console.error('Error cleaning up old sessions:', err);
                     return reject(err);
