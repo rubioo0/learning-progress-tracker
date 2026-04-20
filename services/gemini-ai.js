@@ -34,6 +34,7 @@ const PROFESSIONAL_CONTEXT = {
 class GeminiAIService {
     constructor() {
         this.client = null;
+        this.filePersistenceEnabled = !!config.AI_FILE_PERSISTENCE;
         this.availableModels = this._normalizeModelCatalog(config.AI_MODELS);
         this.retryConfig = {
             maxRetriesPerModel: Number(config.AI_RETRY?.maxRetriesPerModel) || 3,
@@ -140,6 +141,12 @@ class GeminiAIService {
     }
 
     _loadModelConfig() {
+        const defaults = this._defaultModelConfig();
+
+        if (!this.filePersistenceEnabled) {
+            return defaults;
+        }
+
         try {
             if (fs.existsSync(MODEL_CONFIG_FILE)) {
                 const raw = fs.readFileSync(MODEL_CONFIG_FILE, 'utf8');
@@ -152,12 +159,15 @@ class GeminiAIService {
             console.error('Error loading model config:', err.message);
         }
 
-        const defaults = this._defaultModelConfig();
         this._saveModelConfig(defaults);
         return defaults;
     }
 
     _saveModelConfig(modelConfig = this.modelConfig) {
+        if (!this.filePersistenceEnabled) {
+            return;
+        }
+
         try {
             fs.writeFileSync(MODEL_CONFIG_FILE, JSON.stringify(modelConfig, null, 2), 'utf8');
         } catch (err) {
@@ -170,7 +180,7 @@ class GeminiAIService {
             if (process.env.GEMINI_API_KEY) {
                 return process.env.GEMINI_API_KEY;
             }
-            if (fs.existsSync(API_KEY_FILE)) {
+            if (this.filePersistenceEnabled && fs.existsSync(API_KEY_FILE)) {
                 return fs.readFileSync(API_KEY_FILE, 'utf8').trim();
             }
         } catch (err) {
@@ -187,18 +197,26 @@ class GeminiAIService {
 
     setApiKey(key) {
         this.apiKey = key;
-        try {
-            fs.writeFileSync(API_KEY_FILE, key, 'utf8');
-        } catch (err) {
-            console.error('Error saving API key:', err.message);
+
+        if (this.filePersistenceEnabled) {
+            try {
+                fs.writeFileSync(API_KEY_FILE, key, 'utf8');
+            } catch (err) {
+                console.error('Error saving API key:', err.message);
+            }
         }
+
         this._initClient();
     }
 
     getApiKeyStatus() {
+        const source = process.env.GEMINI_API_KEY
+            ? 'environment'
+            : (this.apiKey ? (this.filePersistenceEnabled ? 'file' : 'runtime') : 'none');
+
         return {
             configured: !!this.apiKey,
-            source: process.env.GEMINI_API_KEY ? 'environment' : (this.apiKey ? 'file' : 'none'),
+            source,
             maskedKey: this.apiKey ? this.apiKey.slice(0, 6) + '...' + this.apiKey.slice(-4) : null,
             model: this.modelConfig.activeModel,
             activeModel: this.modelConfig.activeModel,

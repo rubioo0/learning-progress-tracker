@@ -1,12 +1,12 @@
-    const express = require('express');
-const multer = require('multer');
+const express = require('express');
 const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 
 // Import custom modules
 const config = require('./config/app-config');
-const DatabaseService = require('./services/database');
+const DatabaseService = require('./services/database-unified');
+const FileStorageService = require('./services/file-storage');
 const helpers = require('./utils/helpers');
 const TimeTrackerService = require('./services/time-tracker');
 const { errorHandler } = require('./utils/error-handler');
@@ -15,20 +15,101 @@ const CodeValidatorService = require('./services/code-validator');
 
 const app = express();
 const dbService = new DatabaseService();
+const fileStorage = new FileStorageService();
 const timeTracker = new TimeTrackerService(dbService.db);
 const geminiAI = new GeminiAIService();
 const codeValidator = new CodeValidatorService(config.CODE_VALIDATION || {});
+
+function validateRuntimeConfig() {
+    if (config.REQUIRE_PROD_EXTERNAL_SERVICES && config.NODE_ENV === 'production') {
+        const missing = [];
+
+        if (!config.DATABASE_URL || config.FORCE_SQLITE) {
+            missing.push('DATABASE_URL');
+        }
+        if (!config.GEMINI_API_KEY) {
+            missing.push('GEMINI_API_KEY');
+        }
+        if (!config.CLOUDINARY.CONFIGURED) {
+            missing.push('CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET');
+        }
+
+        if (missing.length > 0) {
+            throw new Error(`Missing production configuration: ${missing.join(', ')}`);
+        }
+    }
+
+    const dbInfo = dbService.getProviderInfo ? dbService.getProviderInfo() : { provider: 'unknown' };
+    console.log(`[Startup] Database provider: ${dbInfo.provider}`);
+    console.log(`[Startup] File storage backend: ${fileStorage.getInfo().backend}`);
+}
 
 // Middleware
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());
 
+validateRuntimeConfig();
+
+// Allow API calls from local dev origins (different ports/tools) and file:// pages.
+app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = new Set(config.CORS_ALLOWED_ORIGINS || []);
+    const isLocalhostOrigin = typeof origin === 'string' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    const isExplicitAllowedOrigin = typeof origin === 'string' && allowedOrigins.has(origin);
+
+    if (origin === 'null' && config.ALLOW_NULL_ORIGIN) {
+        res.header('Access-Control-Allow-Origin', 'null');
+    } else if (isLocalhostOrigin || isExplicitAllowedOrigin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+
+    next();
+});
+
 // Add rate limiting middleware for time tracking endpoints
 app.use('/api/learning-sessions', errorHandler.rateLimitMiddleware());
 
-// Configure multer for file uploads
-const upload = multer({ dest: config.UPLOAD_DIRECTORY });
+// Configure upload middleware
+const attachmentUpload = fileStorage.getUploadMiddleware();
+const temporaryUpload = fileStorage.getTemporaryUploadMiddleware();
+
+function buildXlsxPreviewFromBuffer(buffer) {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetsPreview = [];
+
+    workbook.SheetNames.slice(0, 3).forEach((sheetName, index) => {
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+            return;
+        }
+
+        sheetsPreview.push(helpers.extractSheetPreview(worksheet, sheetName, index));
+    });
+
+    return {
+        totalSheets: workbook.SheetNames.length,
+        sheetNames: workbook.SheetNames,
+        sheetsPreview,
+        success: true
+    };
+}
+
+async function readAttachmentForPreview(attachmentPath) {
+    const contentBuffer = await fileStorage.readFileBuffer(attachmentPath);
+    return {
+        buffer: contentBuffer,
+        size: contentBuffer.length
+    };
+}
 
 // Routes
 
@@ -87,7 +168,7 @@ app.get('/api/achievements', (req, res) => {
 });
 
 // File attachment endpoints
-app.post('/api/topics/:id/attachment', upload.single('attachment'), (req, res) => {
+app.post('/api/topics/:id/attachment', attachmentUpload.single('attachment'), (req, res) => {
     const { id } = req.params;
     console.log(`File upload request for topic ${id}`);
     
@@ -96,86 +177,86 @@ app.post('/api/topics/:id/attachment', upload.single('attachment'), (req, res) =
         return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    const { path: attachmentPath, originalname, filename } = req.file;
-    console.log(`File uploaded: ${originalname} -> ${filename} at ${attachmentPath}`);
-    
-    dbService.updateTopicAttachment(id, filename, originalname, attachmentPath, (err) => {
+    const storageMeta = fileStorage.getStorageMetadata(req.file);
+    if (!storageMeta || !storageMeta.attachmentPath) {
+        return res.status(500).json({ error: 'Upload completed but storage metadata is missing.' });
+    }
+
+    console.log(`File uploaded: ${storageMeta.originalName} -> ${storageMeta.attachmentFileId} at ${storageMeta.attachmentPath}`);
+
+    dbService.updateTopicAttachment(
+        id,
+        storageMeta.attachmentFileId,
+        storageMeta.originalName,
+        storageMeta.attachmentPath,
+        (err) => {
         if (err) {
             console.error('Database error during file attachment:', err);
             return helpers.handleDatabaseError(res, err);
         }
         console.log(`File attached successfully to topic ${id}`);
-        res.json({ message: 'File attached successfully', filename: originalname });
+        res.json({
+            message: 'File attached successfully',
+            filename: storageMeta.originalName,
+            storage: storageMeta.isRemote ? 'cloud' : 'local'
+        });
     });
 });
 
-app.get('/api/topics/:id/attachment/preview', (req, res) => {
+app.get('/api/topics/:id/attachment/preview', async (req, res) => {
     const { id } = req.params;
     console.log(`Preview request for topic ID: ${id}`);
-    
-    dbService.getTopicAttachment(id, (err, row) => {
+
+    dbService.getTopicAttachment(id, async (err, row) => {
         if (err) {
             console.error('Database error:', err);
             return helpers.handleDatabaseError(res, err);
         }
-        
+
         if (!row || !row.attachment_path) {
             console.log(`No attachment found for topic ${id}`);
-            // Always return JSON error
             return res.status(404).json({ error: 'No attachment found for this topic', canPreview: false });
         }
-        
-        const filePath = path.join(__dirname, row.attachment_path);
-        
-        if (!fs.existsSync(filePath)) {
-            console.error(`File not found on disk: ${filePath}`);
-            // Always return JSON error
-            return res.status(404).json({ error: 'Attachment file not found on disk', canPreview: false });
-        }
-        
+
         if (!helpers.isSupportedFileType(row.attachment_original_name)) {
             console.log(`Unsupported file type: ${row.attachment_original_name}`);
             return res.status(400).json({ error: 'File type not supported for preview', canPreview: false });
         }
-        
-        if (!helpers.isValidPreviewSize(filePath)) {
-            console.log(`File too large for preview: ${filePath}`);
-            return res.status(400).json({ error: 'File too large for preview (max 50KB)', canPreview: false });
-        }
-        
+
         try {
-            // Check if it's an XLSX file
+            const { buffer, size } = await readAttachmentForPreview(row.attachment_path);
+
+            if (size > config.MAX_PREVIEW_FILE_SIZE) {
+                return res.status(400).json({
+                    error: `File too large for preview (max ${Math.round(config.MAX_PREVIEW_FILE_SIZE / 1024)}KB)`,
+                    canPreview: false
+                });
+            }
+
             if (helpers.isXlsxFileType(row.attachment_original_name)) {
                 console.log('Processing XLSX file...');
-                const xlsxPreview = helpers.parseXlsxForPreview(filePath);
-                const stats = fs.statSync(filePath);
-                
-                if (xlsxPreview.success) {
+                const xlsxPreview = buildXlsxPreviewFromBuffer(buffer);
+
+                if (xlsxPreview && xlsxPreview.success) {
                     console.log('XLSX preview successful');
                     res.json({
                         type: 'xlsx',
                         xlsxData: xlsxPreview,
                         filename: row.attachment_original_name,
-                        fileSize: stats.size,
+                        fileSize: size,
                         canPreview: true
                     });
                 } else {
-                    console.error('XLSX parsing failed:', xlsxPreview.error);
-                    res.status(500).json({ 
-                        error: 'Error parsing XLSX file: ' + xlsxPreview.error, 
-                        canPreview: false 
+                    res.status(500).json({
+                        error: 'Error parsing XLSX file',
+                        canPreview: false
                     });
                 }
             } else {
-                // Handle text files
                 console.log('Processing text file...');
-                const content = fs.readFileSync(filePath, 'utf8');
-                const stats = fs.statSync(filePath);
+                const content = buffer.toString('utf8');
                 const fileExtension = path.extname(row.attachment_original_name).toLowerCase();
-                
-                console.log(`Text file read successfully, size: ${stats.size} bytes, type: ${fileExtension}`);
-                
-                // Determine file type for specific text formatting
+
                 let fileType = 'text';
                 if (['.md', '.markdown'].includes(fileExtension)) {
                     fileType = 'markdown';
@@ -188,7 +269,7 @@ app.get('/api/topics/:id/attachment/preview', (req, res) => {
                     subType: fileType,
                     content: content,
                     filename: row.attachment_original_name,
-                    fileSize: stats.size,
+                    fileSize: size,
                     extension: fileExtension,
                     canPreview: true
                 });
@@ -196,17 +277,19 @@ app.get('/api/topics/:id/attachment/preview', (req, res) => {
         } catch (readErr) {
             console.error('Error reading file:', readErr);
             let errorMessage = 'Error reading file content';
-            
-            if (readErr.code === 'ENOENT') {
-                errorMessage = 'File not found on disk';
+
+            if (readErr && readErr.code === 'ENOENT') {
+                errorMessage = 'Attachment file not found';
             } else if (readErr.code === 'EISDIR') {
                 errorMessage = 'Path is a directory, not a file';
             } else if (readErr.code === 'EACCES') {
                 errorMessage = 'Permission denied accessing file';
             } else if (readErr.message && readErr.message.includes('Invalid UTF-8')) {
                 errorMessage = 'File is not valid UTF-8 text content';
+            } else if (readErr.message && readErr.message.includes('Failed to fetch remote file')) {
+                errorMessage = 'Unable to fetch file from cloud storage';
             }
-            
+
             res.status(500).json({ error: errorMessage, canPreview: false });
         }
     });
@@ -214,36 +297,42 @@ app.get('/api/topics/:id/attachment/preview', (req, res) => {
 
 app.get('/api/topics/:id/attachment', (req, res) => {
     const { id } = req.params;
-    
+
     dbService.getTopicAttachment(id, (err, row) => {
         if (err) return helpers.handleDatabaseError(res, err);
-        
+
         if (!row || !row.attachment_path) {
-            // Always return JSON error
             return res.status(404).json({ error: 'No attachment found for this topic' });
         }
-        
-        const filePath = path.join(__dirname, row.attachment_path);
-        
-        if (!fs.existsSync(filePath)) {
-            // Always return JSON error
+
+        if (fileStorage.isRemotePath(row.attachment_path)) {
+            return res.redirect(row.attachment_path);
+        }
+
+        const filePath = fileStorage.getAbsoluteLocalPath(row.attachment_path);
+        if (!filePath || !fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'Attachment file not found on disk' });
         }
-        
+
         res.download(filePath, row.attachment_original_name);
     });
 });
 
 app.delete('/api/topics/:id/attachment', (req, res) => {
     const { id } = req.params;
-    
-    dbService.getTopicAttachment(id, (err, row) => {
+
+    dbService.getTopicAttachment(id, async (err, row) => {
         if (err) return helpers.handleDatabaseError(res, err);
-        
+
         if (row && row.attachment_path) {
-            helpers.cleanupFile(path.join(__dirname, row.attachment_path));
+            try {
+                await fileStorage.removeAttachment(row);
+            } catch (cleanupErr) {
+                console.error('Attachment cleanup failed:', cleanupErr);
+                return res.status(500).json({ error: 'Attachment cleanup failed' });
+            }
         }
-        
+
         dbService.removeTopicAttachment(id, (err) => {
             if (err) return helpers.handleDatabaseError(res, err);
             res.json({ message: 'Attachment removed successfully' });
@@ -264,7 +353,7 @@ app.get('/api/ai/status', (req, res) => {
 app.post('/api/ai/api-key', (req, res) => {
     const { apiKey } = req.body;
     if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 10) {
-        return res.status(400).json({ error: 'Invalid API key format.' });
+        return res.status(400).json({ error: 'API key is missing or too short.' });
     }
     geminiAI.setApiKey(apiKey.trim());
     res.json({ message: 'API key saved successfully', status: geminiAI.getApiKeyStatus() });
@@ -749,6 +838,12 @@ app.post('/api/ai/explain-term', async (req, res) => {
 app.post('/api/code/validate', async (req, res) => {
     const { language, code, editMode } = req.body || {};
 
+    if (!config.CODE_VALIDATION_ENABLED) {
+        return res.status(503).json({
+            error: 'Code validation is disabled in this environment.'
+        });
+    }
+
     if (editMode !== true) {
         return res.status(400).json({
             error: 'Validation is available only in fullscreen Edit mode.'
@@ -832,7 +927,7 @@ app.delete('/api/learning-notes/:id', (req, res) => {
 });
 
 // Excel processing endpoints
-app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
+app.post('/api/upload-excel', temporaryUpload.single('excel'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -912,7 +1007,7 @@ app.post('/api/upload-excel', upload.single('excel'), (req, res) => {
     }
 });
 
-app.post('/api/preview-excel', upload.single('excel'), (req, res) => {
+app.post('/api/preview-excel', temporaryUpload.single('excel'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
