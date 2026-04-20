@@ -4334,6 +4334,11 @@
 
                 if (response.ok) {
                     const data = await response.json();
+
+                    if (data.fallbackUsed) {
+                        const modelUsedLabel = data.modelLabel || getAIModelLabel(data.model) || data.model || 'fallback model';
+                        showSuccessMessage(`Generated with fallback model: ${modelUsedLabel}`);
+                    }
                     
                     if (progressBar) { progressBar.style.width = '100%'; }
                     if (progressText) { progressText.textContent = 'Content generated successfully!'; }
@@ -4425,7 +4430,15 @@
             }
 
             const generatedDate = generatedAt ? new Date(generatedAt).toLocaleString() : 'Unknown';
-            const isTruncated = meta && meta.isTruncated;
+            const isTruncated = Boolean(meta && (
+                meta.isTruncated
+                || meta.status === 'truncated'
+                || meta.generationStatus === 'truncated'
+            ));
+            const fallbackUsed = Boolean(meta && meta.fallbackUsed);
+            const fallbackFromLabel = (meta && meta.activeModel)
+                ? getAIModelLabel(meta.activeModel)
+                : getActiveAIModelLabel();
             const modelLabel = (meta && (meta.modelLabel || getAIModelLabel(meta.model))) || getActiveAIModelLabel();
             const estimatedReadTimeMinutes = Number(meta && meta.readTimeMinutes) > 0
                 ? Number(meta.readTimeMinutes)
@@ -4450,6 +4463,7 @@
                                 <span>AI Generated</span>
                             </span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(modelLabel)}</span>
+                            ${fallbackUsed ? `<span class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md" title="Primary model was unavailable for this request">Fallback from ${escapeHtml(fallbackFromLabel)}</span>` : ''}
                             <span class="text-xs text-gray-400 dark:text-gray-500">&middot;</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(readTimeLabel)}</span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">&middot;</span>

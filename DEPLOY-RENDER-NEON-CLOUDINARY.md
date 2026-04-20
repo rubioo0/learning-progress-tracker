@@ -47,12 +47,12 @@ Already defined defaults:
 - ALLOW_SQLITE_FALLBACK=false
 - STORAGE_BACKEND=cloudinary
 - AI_FILE_PERSISTENCE=false
-- AI_ALLOW_MODEL_FALLBACK=true
+- AI_ALLOW_MODEL_FALLBACK=false
 - CODE_VALIDATION_ENABLED=false
 - REQUIRE_PROD_EXTERNAL_SERVICES=true
 
-If you want strict model behavior (never auto-downgrade from Gemini 2.5 Flash to Flash Lite), set:
-- AI_ALLOW_MODEL_FALLBACK=false
+If you want automatic fallback behavior (allow downgrade from Gemini 2.5 Flash to Flash Lite under overload), set:
+- AI_ALLOW_MODEL_FALLBACK=true
 
 ## 2.1 Deploy from feature branch (no main merge required)
 
