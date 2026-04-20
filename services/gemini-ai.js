@@ -592,13 +592,21 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         let generationProfile = 'standard';
         let maxOutputTokensRequested = primaryGenerationConfig.maxOutputTokens;
         let strictOverloadModelEscapeUsed = false;
+        const fallbackFastRetries = Math.max(1, Math.min(2, this.retryConfig.maxRetriesPerModel));
+        const primaryRetries = this.allowModelFallback ? fallbackFastRetries : this.retryConfig.maxRetriesPerModel;
+        const reducedRetries = this.allowModelFallback
+            ? fallbackFastRetries
+            : Math.max(2, this.retryConfig.maxRetriesPerModel - 1);
+        const emergencyRetries = this.allowModelFallback
+            ? 1
+            : Math.max(1, this.retryConfig.maxRetriesPerModel - 2);
 
         try {
             generated = await this._generateWithFallback(
                 prompt,
                 primaryGenerationConfig,
                 'generate',
-                this.retryConfig.maxRetriesPerModel
+                primaryRetries
             );
         } catch (error) {
             const message = error.message || '';
@@ -619,7 +627,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                     prompt,
                     reducedGenerationConfig,
                     'generate-reduced',
-                    Math.max(2, this.retryConfig.maxRetriesPerModel - 1)
+                    reducedRetries
                 );
                 generationProfile = 'reduced-output';
                 maxOutputTokensRequested = reducedGenerationConfig.maxOutputTokens;
@@ -636,13 +644,14 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                     maxOutputTokens: this.generationLimits.generateEmergencyOutputTokens,
                     temperature: 0.65
                 };
+                const emergencyPrompt = this.allowModelFallback ? prompt : compactPrompt;
 
                 try {
                     generated = await this._generateWithFallback(
-                        compactPrompt,
+                        emergencyPrompt,
                         emergencyGenerationConfig,
                         'generate-emergency',
-                        Math.max(1, this.retryConfig.maxRetriesPerModel - 2)
+                        emergencyRetries
                     );
                     generationProfile = 'emergency-low-output';
                     maxOutputTokensRequested = emergencyGenerationConfig.maxOutputTokens;

@@ -49,7 +49,7 @@ Already defined defaults:
 - ALLOW_SQLITE_FALLBACK=false
 - STORAGE_BACKEND=cloudinary
 - AI_FILE_PERSISTENCE=false
-- AI_ALLOW_MODEL_FALLBACK=false
+- AI_ALLOW_MODEL_FALLBACK=true
 - AI_ALLOW_STRICT_OVERLOAD_MODEL_ESCAPE=true
 - AI_GENERATE_MAX_OUTPUT_TOKENS=8192
 - AI_GENERATE_REDUCED_OUTPUT_TOKENS=4096
@@ -59,10 +59,10 @@ Already defined defaults:
 - CODE_VALIDATION_ENABLED=false
 - REQUIRE_PROD_EXTERNAL_SERVICES=true
 
-If you want automatic fallback behavior (allow downgrade from Gemini 2.5 Flash to Flash Lite under overload), set:
-- AI_ALLOW_MODEL_FALLBACK=true
+If you want strict Flash-only behavior, set:
+- AI_ALLOW_MODEL_FALLBACK=false
 
-Note: topic generation uses a much heavier request profile than inline "Explain". In strict mode (`AI_ALLOW_MODEL_FALLBACK=false`), Explain can succeed while topic generation fails with 503 during temporary model overload.
+Note: topic generation uses a much heavier request profile than inline "Explain". With fallback enabled, the service can downgrade to Flash Lite under overload to return content instead of hard-failing.
 
 Emergency override for strict mode:
 - `AI_ALLOW_STRICT_OVERLOAD_MODEL_ESCAPE=true` keeps strict mode as default but allows emergency fallback to the next model only after repeated 503 overload retries fail.

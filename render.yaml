@@ -33,7 +33,7 @@ services:
       - key: AI_FILE_PERSISTENCE
         value: "false"
       - key: AI_ALLOW_MODEL_FALLBACK
-        value: "false"
+        value: "true"
       - key: CODE_VALIDATION_ENABLED
         value: "false"
       - key: REQUIRE_PROD_EXTERNAL_SERVICES

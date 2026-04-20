@@ -51,7 +51,7 @@ module.exports = {
     ],
     AI_DEFAULT_MODEL: process.env.AI_DEFAULT_MODEL || 'gemini-2.5-flash',
     AI_FALLBACK_ORDER: parseList(process.env.AI_FALLBACK_ORDER, ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']),
-    AI_ALLOW_MODEL_FALLBACK: parseBoolean(process.env.AI_ALLOW_MODEL_FALLBACK, !isProduction),
+    AI_ALLOW_MODEL_FALLBACK: parseBoolean(process.env.AI_ALLOW_MODEL_FALLBACK, true),
     AI_ALLOW_STRICT_OVERLOAD_MODEL_ESCAPE: parseBoolean(process.env.AI_ALLOW_STRICT_OVERLOAD_MODEL_ESCAPE, true),
     AI_GENERATE_MAX_OUTPUT_TOKENS: parseNumber(process.env.AI_GENERATE_MAX_OUTPUT_TOKENS, 8192),
     AI_GENERATE_REDUCED_OUTPUT_TOKENS: parseNumber(process.env.AI_GENERATE_REDUCED_OUTPUT_TOKENS, 4096),

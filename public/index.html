@@ -4426,8 +4426,11 @@
                 } else {
                     const errData = await response.json();
                     const rawError = errData.error || 'Unknown error occurred';
+                    const fallbackEnabled = Boolean(aiStatusCache?.allowModelFallback);
                     const overloadHint = rawError.includes('temporarily overloaded (503)')
-                        ? 'Gemini free-tier capacity is temporarily saturated. Retry in 1-2 minutes or enable fallback mode for automatic Flash Lite failover.'
+                        ? (fallbackEnabled
+                            ? 'All configured fallback models are temporarily saturated. Retry in 1-2 minutes.'
+                            : 'Gemini free-tier capacity is temporarily saturated. Retry in 1-2 minutes or enable fallback mode for automatic Flash Lite failover.')
                         : '';
                     
                     if (progressBar) { 
