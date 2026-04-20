@@ -4042,25 +4042,45 @@
 
                 const apiKeyInput = document.getElementById('ai-api-key-input');
                 const apiKeyHelp = document.getElementById('ai-api-key-help');
+                const canOverrideEnvironmentKey = Boolean(status.canOverrideEnvironmentKey);
+                const inputHardLocked = Boolean(status.keyLockedByEnvironment) && !canOverrideEnvironmentKey;
                 if (apiKeyInput) {
                     apiKeyInput.value = '';
-                    apiKeyInput.disabled = !!status.keyLockedByEnvironment;
-                    apiKeyInput.placeholder = status.keyLockedByEnvironment
+                    apiKeyInput.disabled = inputHardLocked;
+                    apiKeyInput.placeholder = inputHardLocked
                         ? 'Environment-managed key (read-only here)'
-                        : 'Paste API key';
-                    apiKeyInput.classList.toggle('opacity-60', !!status.keyLockedByEnvironment);
-                    apiKeyInput.classList.toggle('cursor-not-allowed', !!status.keyLockedByEnvironment);
+                        : (status.keyLockedByEnvironment
+                            ? 'Paste API key to override environment key for this runtime'
+                            : 'Paste API key');
+                    apiKeyInput.classList.toggle('opacity-60', inputHardLocked);
+                    apiKeyInput.classList.toggle('cursor-not-allowed', inputHardLocked);
                 }
 
                 if (apiKeyHelp) {
                     if (status.keyLockedByEnvironment) {
-                        apiKeyHelp.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1';
-                        apiKeyHelp.textContent = 'This server uses GEMINI_API_KEY from environment. Change it in Render environment variables and redeploy.';
+                        if (status.runtimeOverrideActive) {
+                            apiKeyHelp.className = 'text-xs text-blue-600 dark:text-blue-400 mt-1';
+                            apiKeyHelp.textContent = 'Runtime override key is active. It will revert to GEMINI_API_KEY on restart/redeploy.';
+                        } else if (canOverrideEnvironmentKey) {
+                            apiKeyHelp.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1';
+                            apiKeyHelp.textContent = 'GEMINI_API_KEY is active. Saving here overrides it for the current runtime only.';
+                        } else {
+                            apiKeyHelp.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1';
+                            apiKeyHelp.textContent = 'This server uses GEMINI_API_KEY from environment. Change it in Render environment variables and redeploy.';
+                        }
                     } else {
                         apiKeyHelp.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
                         apiKeyHelp.textContent = 'Your key is stored locally and never shared.';
                     }
                 }
+
+                const environmentKeyNote = status.runtimeOverrideActive
+                    ? '<p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Runtime override API key is active for this running server process.</p>'
+                    : (status.keyLockedByEnvironment && canOverrideEnvironmentKey
+                        ? '<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Environment key is active. Saving a key here will override it for current runtime only.</p>'
+                        : (status.keyLockedByEnvironment
+                            ? '<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">API key is environment-managed and cannot be changed from this UI.</p>'
+                            : ''));
                 
                 const statusEl = document.getElementById('ai-key-status');
                 if (status.configured) {
@@ -4072,7 +4092,7 @@
                         </div>
                         <p class="text-xs text-green-600 dark:text-green-400 mt-1">Key: ${status.maskedKey} (source: ${status.source})</p>
                         <p class="text-xs text-green-600 dark:text-green-400">Active model: ${getAIModelLabel(status.activeModel || status.model)}</p>
-                        ${status.keyLockedByEnvironment ? '<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">API key is environment-managed and cannot be changed from this UI.</p>' : ''}
+                        ${environmentKeyNote}
                     `;
                     statusEl.classList.remove('hidden');
                 } else {
@@ -4124,15 +4144,9 @@
             const modelSelect = document.getElementById('ai-model-select');
             const selectedModel = modelSelect ? modelSelect.value : null;
             const previousModel = aiStatusCache?.activeModel || aiStatusCache?.model;
-            const keyLockedByEnvironment = Boolean(aiStatusCache?.keyLockedByEnvironment);
 
             if (apiKey && apiKey.length < 10) {
                 showErrorMessage('API key looks too short. Please paste your full key from aistudio.google.com/apikey.');
-                return;
-            }
-
-            if (keyLockedByEnvironment && apiKey) {
-                showErrorMessage('API key is managed by server environment. Update GEMINI_API_KEY in Render environment variables and redeploy.');
                 return;
             }
 

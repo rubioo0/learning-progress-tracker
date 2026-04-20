@@ -34,6 +34,7 @@ const PROFESSIONAL_CONTEXT = {
 class GeminiAIService {
     constructor() {
         this.client = null;
+        this.runtimeApiKeyOverride = false;
         this.filePersistenceEnabled = !!config.AI_FILE_PERSISTENCE;
         this.availableModels = this._normalizeModelCatalog(config.AI_MODELS);
         this.retryConfig = {
@@ -210,18 +211,17 @@ class GeminiAIService {
 
     setApiKey(key) {
         const nextKey = String(key || '').trim();
+        const envKey = String(process.env.GEMINI_API_KEY || '').trim();
+        const hasEnvKey = Boolean(envKey);
 
         if (!nextKey || nextKey.length < 10) {
             throw new Error('API key is missing or too short.');
         }
 
-        if (process.env.GEMINI_API_KEY) {
-            throw new Error('API key is managed by environment variable GEMINI_API_KEY. Update server environment settings and redeploy to change it.');
-        }
-
         this.apiKey = nextKey;
+        this.runtimeApiKeyOverride = hasEnvKey && nextKey !== envKey;
 
-        if (this.filePersistenceEnabled) {
+        if (this.filePersistenceEnabled && !hasEnvKey) {
             try {
                 fs.writeFileSync(API_KEY_FILE, nextKey, 'utf8');
             } catch (err) {
@@ -233,15 +233,21 @@ class GeminiAIService {
     }
 
     getApiKeyStatus() {
-        const keyLockedByEnvironment = Boolean(process.env.GEMINI_API_KEY);
-        const source = process.env.GEMINI_API_KEY
-            ? 'environment'
-            : (this.apiKey ? (this.filePersistenceEnabled ? 'file' : 'runtime') : 'none');
+        const envKey = String(process.env.GEMINI_API_KEY || '').trim();
+        const keyLockedByEnvironment = Boolean(envKey);
+        const runtimeOverrideActive = keyLockedByEnvironment && this.runtimeApiKeyOverride;
+        const source = runtimeOverrideActive
+            ? 'runtime-override'
+            : (keyLockedByEnvironment
+                ? 'environment'
+                : (this.apiKey ? (this.filePersistenceEnabled ? 'file' : 'runtime') : 'none'));
 
         return {
             configured: !!this.apiKey,
             source,
             keyLockedByEnvironment,
+            canOverrideEnvironmentKey: keyLockedByEnvironment,
+            runtimeOverrideActive,
             maskedKey: this.apiKey ? this.apiKey.slice(0, 6) + '...' + this.apiKey.slice(-4) : null,
             model: this.modelConfig.activeModel,
             activeModel: this.modelConfig.activeModel,
