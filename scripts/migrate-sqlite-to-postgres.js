@@ -61,6 +61,97 @@ async function sqliteTableColumns(db, tableName) {
     return new Set(rows.map((row) => String(row.name || '').trim()).filter(Boolean));
 }
 
+const TIMESTAMP_COLUMNS = {
+    topics: new Set(['created_at', 'updated_at']),
+    learning_notes: new Set(['created_at', 'updated_at']),
+    sessions: new Set(['start_time', 'end_time', 'created_at']),
+    progress: new Set(['updated_at']),
+    achievements: new Set(['earned_at']),
+    time_tracking_sessions: new Set(['created_at', 'updated_at'])
+};
+
+function isTimestampColumn(tableName, columnName) {
+    return Boolean(TIMESTAMP_COLUMNS[tableName] && TIMESTAMP_COLUMNS[tableName].has(columnName));
+}
+
+function toIsoFromEpoch(value) {
+    if (!Number.isFinite(value)) {
+        return null;
+    }
+
+    let milliseconds = value;
+    const abs = Math.abs(value);
+
+    if (abs >= 1e18) {
+        milliseconds = Math.trunc(value / 1e6); // nanoseconds -> milliseconds
+    } else if (abs >= 1e15) {
+        milliseconds = Math.trunc(value / 1000); // microseconds -> milliseconds
+    } else if (abs >= 1e12) {
+        milliseconds = value; // milliseconds
+    } else if (abs >= 1e9) {
+        milliseconds = value * 1000; // seconds -> milliseconds
+    } else {
+        return null;
+    }
+
+    const date = new Date(milliseconds);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return date.toISOString();
+}
+
+function normalizeTimestampValue(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value.toISOString();
+    }
+
+    if (typeof value === 'number') {
+        const fromEpoch = toIsoFromEpoch(value);
+        return fromEpoch || null;
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return null;
+        }
+
+        if (/^\d+(\.\d+)?$/.test(trimmed)) {
+            const fromEpoch = toIsoFromEpoch(Number(trimmed));
+            if (fromEpoch) {
+                return fromEpoch;
+            }
+        }
+
+        const parsed = Date.parse(trimmed);
+        if (!Number.isNaN(parsed)) {
+            return new Date(parsed).toISOString();
+        }
+
+        return trimmed;
+    }
+
+    return null;
+}
+
+function normalizeValueForInsert(tableName, columnName, value) {
+    if (value === undefined) {
+        return null;
+    }
+
+    if (isTimestampColumn(tableName, columnName)) {
+        return normalizeTimestampValue(value);
+    }
+
+    return value;
+}
+
 function placeholders(count) {
     return Array.from({ length: count }, (_, index) => `$${index + 1}`).join(', ');
 }
@@ -192,7 +283,7 @@ async function migrateTable(sqliteDb, pgPool, tableName, columns, conflictColumn
     const upsertSql = buildUpsertSql(tableName, columns, conflictColumn);
 
     for (const row of rows) {
-        const values = columns.map((column) => (row[column] === undefined ? null : row[column]));
+        const values = columns.map((column) => normalizeValueForInsert(tableName, column, row[column]));
         await pgPool.query(upsertSql, values);
     }
 
