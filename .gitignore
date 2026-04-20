@@ -17,6 +17,9 @@ uploads/
 .env.development.local
 .env.test.local
 .env.production.local
+.claude-api-key
+.gemini-api-key
+.gemini-model-config.json
 
 # OS generated files
 .DS_Store
