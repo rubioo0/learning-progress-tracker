@@ -34,6 +34,33 @@ function sqliteAll(db, sql, params = []) {
     });
 }
 
+function sqliteGet(db, sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(row || null);
+        });
+    });
+}
+
+async function sqliteTableExists(db, tableName) {
+    const row = await sqliteGet(
+        db,
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+        [tableName]
+    );
+
+    return Boolean(row && row.name);
+}
+
+async function sqliteTableColumns(db, tableName) {
+    const rows = await sqliteAll(db, `PRAGMA table_info(${tableName})`);
+    return new Set(rows.map((row) => String(row.name || '').trim()).filter(Boolean));
+}
+
 function placeholders(count) {
     return Array.from({ length: count }, (_, index) => `$${index + 1}`).join(', ');
 }
@@ -135,10 +162,31 @@ async function bootstrapPostgresSchema(pool) {
 }
 
 async function migrateTable(sqliteDb, pgPool, tableName, columns, conflictColumn = 'id') {
-    const rows = await sqliteAll(sqliteDb, `SELECT ${columns.join(', ')} FROM ${tableName}`);
+    const tableExists = await sqliteTableExists(sqliteDb, tableName);
+    if (!tableExists) {
+        console.log(`- ${tableName}: source table not found in SQLite, skipping`);
+        return;
+    }
+
+    const availableColumns = await sqliteTableColumns(sqliteDb, tableName);
+    const missingColumns = columns.filter((column) => !availableColumns.has(column));
+
+    const selectColumns = columns.map((column) => {
+        if (availableColumns.has(column)) {
+            return column;
+        }
+
+        return `NULL AS ${column}`;
+    });
+
+    const rows = await sqliteAll(sqliteDb, `SELECT ${selectColumns.join(', ')} FROM ${tableName}`);
     if (rows.length === 0) {
         console.log(`- ${tableName}: no rows to migrate`);
         return;
+    }
+
+    if (missingColumns.length > 0) {
+        console.log(`- ${tableName}: missing source columns mapped to NULL: ${missingColumns.join(', ')}`);
     }
 
     const upsertSql = buildUpsertSql(tableName, columns, conflictColumn);
