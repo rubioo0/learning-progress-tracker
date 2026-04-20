@@ -92,13 +92,15 @@ Replace `YYYY-MM-DD` with current date.
 
 ## 4. Migrate existing SQLite data to Neon
 
+For a complete migration (topics, learning notes, sessions, progress, achievements, and time tracking), use your local SQLite database as the source.
+
 If you already have data in learning_progress.db, run:
 
 ```powershell
 node scripts/migrate-sqlite-to-postgres.js
 ```
 
-If your source is a JSON backup instead of SQLite, import it into local SQLite first:
+If your source is a JSON backup instead of SQLite, import it into local SQLite first. Note: this helper currently imports topics only.
 
 ```powershell
 node scripts/import-json-state-to-sqlite.js path\to\your-backup.json --clear
