@@ -44,9 +44,9 @@ class GeminiAIService {
             jitterMs: Number(config.AI_RETRY?.jitterMs) || 700
         };
         this.generationLimits = {
-            generateMaxOutputTokens: Math.max(2048, Number(config.AI_GENERATE_MAX_OUTPUT_TOKENS) || 8192),
-            generateReducedOutputTokens: Math.max(2048, Number(config.AI_GENERATE_REDUCED_OUTPUT_TOKENS) || 4096),
-            generateEmergencyOutputTokens: Math.max(1024, Number(config.AI_GENERATE_EMERGENCY_OUTPUT_TOKENS) || 3072),
+            generateMaxOutputTokens: Math.max(2048, Number(config.AI_GENERATE_MAX_OUTPUT_TOKENS) || 12288),
+            generateReducedOutputTokens: Math.max(2048, Number(config.AI_GENERATE_REDUCED_OUTPUT_TOKENS) || 8192),
+            generateEmergencyOutputTokens: Math.max(1024, Number(config.AI_GENERATE_EMERGENCY_OUTPUT_TOKENS) || 6144),
             explainMaxOutputTokens: Math.max(512, Number(config.AI_EXPLAIN_MAX_OUTPUT_TOKENS) || 2048)
         };
 
@@ -379,42 +379,6 @@ Use Markdown formatting throughout: headers (##, ###), code blocks with language
     }
 
     /**
-     * Build a compact prompt used only for overload recovery.
-     */
-    buildPromptCompact(topic) {
-        const parsedDesc = this._parseDescription(topic.description || '');
-        const descriptionLines = parsedDesc.descriptions.slice(0, 6);
-        const artifactsLines = parsedDesc.artifacts.slice(0, 4);
-
-        const descriptionSection = descriptionLines.length > 0
-            ? descriptionLines.map((line) => `- ${line}`).join('\n')
-            : '- Cover the topic based on title and practical QA/AQA needs.';
-
-        const artifactsSection = artifactsLines.length > 0
-            ? `\nExpected outcomes:\n${artifactsLines.map((line) => `- ${line}`).join('\n')}`
-            : '';
-
-        const categoryContext = topic.category ? `\nCategory: ${topic.category}` : '';
-        const moduleContext = topic.module ? `\nModule: ${topic.module}` : '';
-
-        return `You are a Senior QA/SDET writing a concise but practical study guide for a Mid-level QA Automation engineer (C# and Python).
-
-Topic: ${topic.title}${categoryContext}${moduleContext}
-
-Topic details:
-${descriptionSection}${artifactsSection}
-
-Create a structured Markdown guide with these sections:
-1. TL;DR
-2. Core concepts and production relevance
-3. Practical implementation steps
-4. One C# example and one Python example
-5. Common pitfalls and best practices
-
-Keep it actionable and avoid unnecessary verbosity. Use headings and fenced code blocks.`;
-    }
-
-    /**
      * Build a prompt for explaining an unknown term/concept (inline learning assistant)
      */
     buildExplainPrompt(term, sourceTopicTitle, sourceContext) {
@@ -582,7 +546,6 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         }
 
         const prompt = this.buildPrompt(topic);
-        const compactPrompt = this.buildPromptCompact(topic);
         const primaryGenerationConfig = {
             maxOutputTokens: this.generationLimits.generateMaxOutputTokens,
             temperature: 0.8
@@ -644,11 +607,9 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                     maxOutputTokens: this.generationLimits.generateEmergencyOutputTokens,
                     temperature: 0.65
                 };
-                const emergencyPrompt = this.allowModelFallback ? prompt : compactPrompt;
-
                 try {
                     generated = await this._generateWithFallback(
-                        emergencyPrompt,
+                        prompt,
                         emergencyGenerationConfig,
                         'generate-emergency',
                         emergencyRetries
@@ -677,7 +638,7 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                     };
 
                     generated = await this._generateWithFallback(
-                        compactPrompt,
+                        prompt,
                         strictEscapeGenerationConfig,
                         'generate-strict-escape',
                         Math.max(2, this.retryConfig.maxRetriesPerModel - 2),
