@@ -42,6 +42,7 @@ class GeminiAIService {
             maxDelayMs: Number(config.AI_RETRY?.maxDelayMs) || 15000,
             jitterMs: Number(config.AI_RETRY?.jitterMs) || 700
         };
+        this.allowModelFallback = config.AI_ALLOW_MODEL_FALLBACK !== false;
         this.modelConfig = this._loadModelConfig();
         this.model = this.modelConfig.activeModel;
         this.apiKey = this._loadApiKey();
@@ -222,6 +223,7 @@ class GeminiAIService {
             activeModel: this.modelConfig.activeModel,
             activeModelLabel: this.getModelLabel(this.modelConfig.activeModel),
             fallbackOrder: [...this.modelConfig.fallbackOrder],
+            allowModelFallback: this.allowModelFallback,
             availableModels: [...this.availableModels]
         };
     }
@@ -407,7 +409,13 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
     }
 
     _getModelSequence() {
-        return this._normalizeFallbackOrder(this.modelConfig.fallbackOrder, this.modelConfig.activeModel);
+        const normalized = this._normalizeFallbackOrder(this.modelConfig.fallbackOrder, this.modelConfig.activeModel);
+
+        if (!this.allowModelFallback) {
+            return normalized.length > 0 ? [normalized[0]] : [];
+        }
+
+        return normalized;
     }
 
     async _generateWithFallback(prompt, generationConfig, operationLabel, maxRetriesPerModel) {

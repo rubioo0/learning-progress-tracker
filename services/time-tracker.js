@@ -396,7 +396,12 @@ class TimeTrackerService {
                 rows.forEach(row => {
                     const totalSeconds = Number(row.total_seconds || 0);
                     const totalMinutes = Math.round(totalSeconds / 60);
-                    calendarData[row.date] = {
+                    const dateKey = this.normalizeDateKey(row.date);
+                    if (!dateKey) {
+                        return;
+                    }
+
+                    calendarData[dateKey] = {
                         sessions: Number(row.sessions || 0),
                         completedSessions: Number(row.completed_sessions || 0),
                         totalSeconds,
@@ -496,6 +501,43 @@ class TimeTrackerService {
         }
 
         return date.toISOString();
+    }
+
+    normalizeDateKey(value) {
+        if (value === undefined || value === null || value === '') {
+            return null;
+        }
+
+        if (value instanceof Date) {
+            if (Number.isNaN(value.getTime())) {
+                return null;
+            }
+
+            const year = value.getUTCFullYear();
+            const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(value.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const raw = String(value).trim();
+        if (!raw) {
+            return null;
+        }
+
+        const isoPrefix = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (isoPrefix) {
+            return isoPrefix[1];
+        }
+
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) {
+            return null;
+        }
+
+        const year = parsed.getUTCFullYear();
+        const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(parsed.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     calculateIntensity(minutes) {

@@ -616,6 +616,34 @@
         .preview-content-area {
             padding: 1.5rem;
         }
+
+        /* Keep raw code/text previews in a readable line-length zone. */
+        .preview-content-area .readable-code-container {
+            max-width: min(108ch, 100%);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .preview-content-area .readable-code-container pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .preview-content-area .readable-code-container code {
+            display: block;
+            white-space: pre;
+            min-width: max-content;
+        }
+
+        #file-preview-modal.modal-fullscreen .preview-content-area .readable-code-container {
+            max-width: min(112ch, 100%) !important;
+        }
+
+        @media (max-width: 768px) {
+            .preview-content-area .readable-code-container {
+                max-width: 100%;
+            }
+        }
         
         .markdown-content table {
             width: 100%;
@@ -870,6 +898,9 @@
             backdrop-filter: blur(4px);
             display: flex;
             flex-direction: column;
+            --code-editor-line-height: 1.55em;
+            --code-editor-padding-y: 1rem;
+            --code-editor-padding-x: 1rem;
         }
 
         .code-fullscreen-header {
@@ -963,28 +994,259 @@
             line-height: inherit;
         }
 
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.hljs {
+            background: transparent !important;
+            color: #D4D4D4;
+            padding: 0 !important;
+        }
+
+        /* VS Code Dark+ inspired palette for Python and C# */
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-comment,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-comment {
+            color: #6A9955;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-keyword,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-keyword,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-built_in,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-built_in {
+            color: #C586C0;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-string,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-string {
+            color: #CE9178;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-number,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-number,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-literal,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-literal {
+            color: #B5CEA8;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-title,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-title,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-title.class_,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-title.class_,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-type,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-type {
+            color: #4EC9B0;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-function .hljs-title,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-function .hljs-title {
+            color: #DCDCAA;
+        }
+
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-meta,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-meta,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-python .hljs-attr,
+        :is(.code-fullscreen-pre, .code-fullscreen-editor-preview, #file-preview-content .code-block-wrapper pre) code.language-csharp .hljs-attr {
+            color: #9CDCFE;
+        }
+
         .code-fullscreen-pre.hidden {
             display: none;
         }
 
-        .code-fullscreen-editor {
+        .code-fullscreen-editor-shell {
             display: none;
             width: 100%;
             min-height: calc(100vh - 170px);
             border: 1px solid #334155;
             border-radius: 0.75rem;
             background: #0B1220;
-            color: #E2E8F0;
-            padding: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-fullscreen-editor-shell.active {
+            display: block;
+        }
+
+        .code-fullscreen-editor-preview {
+            margin: 0;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: auto;
+            padding: var(--code-editor-padding-y) var(--code-editor-padding-x);
             font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
             font-size: 0.9rem;
             line-height: 1.55;
-            resize: vertical;
+            white-space: pre;
+            z-index: 2;
+            background: transparent;
+            scrollbar-width: none;
+        }
+
+        .code-fullscreen-editor-preview::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+        }
+
+        .code-fullscreen-editor-preview code {
+            white-space: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            font-family: inherit;
+            display: block;
+            min-height: 100%;
+            color: #E2E8F0;
+        }
+
+        .code-fullscreen-editor-line-highlights {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .code-fullscreen-editor-line-highlights-content {
+            position: relative;
+            width: 100%;
+        }
+
+        .code-fullscreen-editor-line-highlight {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1.55em;
+            background: rgba(239, 68, 68, 0.18);
+            box-shadow: inset 3px 0 0 #EF4444;
+        }
+
+        .code-fullscreen-editor-error-markers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 4;
+        }
+
+        .code-fullscreen-editor-error-markers-content {
+            position: relative;
+            width: 100%;
+        }
+
+        .code-fullscreen-editor-error-marker {
+            position: absolute;
+            right: 0.4rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.12s ease, filter 0.12s ease;
+        }
+
+        .code-fullscreen-editor-error-marker:hover {
+            transform: scale(1.1);
+            filter: brightness(1.08);
+        }
+
+        .code-fullscreen-editor-error-marker.error {
+            background: rgba(239, 68, 68, 0.95);
+            border-color: rgba(254, 202, 202, 0.9);
+            color: #fff;
+        }
+
+        .code-fullscreen-editor-error-marker.warning {
+            background: rgba(245, 158, 11, 0.95);
+            border-color: rgba(254, 243, 199, 0.9);
+            color: #111827;
+        }
+
+        .code-fullscreen-error-popover {
+            position: absolute;
+            z-index: 6;
+            width: min(28rem, calc(100vw - 2rem));
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid #334155;
+            border-radius: 0.65rem;
+            box-shadow: 0 18px 35px rgba(2, 6, 23, 0.55);
+            color: #E2E8F0;
+            padding: 0.6rem 0.65rem;
+            display: none;
+        }
+
+        .code-fullscreen-error-popover.show {
+            display: block;
+        }
+
+        .code-fullscreen-error-popover-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #F8FAFC;
+            margin-bottom: 0.3rem;
+        }
+
+        .code-fullscreen-error-popover-msg {
+            font-size: 0.72rem;
+            line-height: 1.4;
+            color: #CBD5E1;
+            margin-bottom: 0.45rem;
+            white-space: normal;
+        }
+
+        .code-fullscreen-error-popover-btn {
+            border: 1px solid #2563EB;
+            background: #1D4ED8;
+            color: #DBEAFE;
+            font-size: 0.7rem;
+            border-radius: 0.4rem;
+            padding: 0.26rem 0.55rem;
+            cursor: pointer;
+            transition: background 0.12s ease;
+        }
+
+        .code-fullscreen-error-popover-btn:hover {
+            background: #1E40AF;
+        }
+
+        .code-fullscreen-editor {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+            border: none;
+            background: transparent;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            caret-color: #E2E8F0;
+            padding: var(--code-editor-padding-y) var(--code-editor-padding-x);
+            font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            resize: none;
             outline: none;
+            overflow: auto;
+            white-space: pre;
+            z-index: 3;
+            tab-size: 4;
+        }
+
+        .code-fullscreen-editor.no-syntax-fallback {
+            color: #E2E8F0;
+            -webkit-text-fill-color: #E2E8F0;
         }
 
         .code-fullscreen-editor.active {
             display: block;
+        }
+
+        .code-fullscreen-editor::selection {
+            background: rgba(56, 189, 248, 0.28);
         }
 
         .code-fullscreen-feedback {
@@ -1624,7 +1886,7 @@
                     <div class="relative">
                         <input type="password" id="ai-api-key-input" 
                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 text-sm"
-                               placeholder="AIza...">
+                               placeholder="Paste API key">
                         <button onclick="toggleApiKeyVisibility()" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                             <i data-lucide="eye" class="w-4 h-4" id="api-key-eye-icon"></i>
                         </button>
@@ -1698,7 +1960,7 @@
     </div>
 
     <!-- Inline Term Explanation Popup (floating) -->
-    <div id="explain-popup" class="fixed hidden z-[10001] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-800 max-w-md w-96 overflow-hidden" style="max-height: 420px;">
+    <div id="explain-popup" class="fixed hidden z-[10008] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-800 max-w-md w-96 overflow-hidden" style="max-height: 420px;">
         <div class="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-2.5 flex items-center justify-between">
             <div class="flex items-center space-x-2 text-white">
                 <div class="p-1 bg-white/20 rounded-md">
@@ -3188,6 +3450,14 @@
             if (wasHidden) {
                 lockScroll();
             }
+
+            if (AUTO_FULLSCREEN_FILE_PREVIEW && !modal.classList.contains('modal-fullscreen')) {
+                requestAnimationFrame(() => {
+                    if (!modal.classList.contains('hidden') && !modal.classList.contains('modal-fullscreen')) {
+                        toggleModalFullscreen('file-preview-modal');
+                    }
+                });
+            }
         }
 
         function hideFilePreviewModal() {
@@ -3540,16 +3810,144 @@
         const aiGeneratedContentCache = new Map();
         // Cached AI status payload from /api/ai/status
         let aiStatusCache = null;
+        // Resolved AI API base ('' means same-origin). Set automatically when a working endpoint is found.
+        let aiApiBase = '';
+        // Frontend fallback model catalog if backend status payload is partial/legacy
+        const DEFAULT_AI_MODELS = [
+            { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tier: 'free', recommended: true },
+            { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', tier: 'free', recommended: false },
+            { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', tier: 'free', recommended: false }
+        ];
+        // Keep file preview immersive by default using modal fullscreen styles.
+        const AUTO_FULLSCREEN_FILE_PREVIEW = true;
         // UI lock state: when true, prevent closing the file preview modal
         let uiLockedForGeneration = false;
         // Explain cooldown in milliseconds timestamp
         let explainCooldownUntil = 0;
         // Current explain popup state
         let currentExplanation = null;
+        // Hover popover timer for code validation markers
+        let codeErrorPopoverHideTimer = null;
+
+        function getStatusModels(status) {
+            const models = Array.isArray(status?.availableModels)
+                ? status.availableModels.filter((model) => model && model.id)
+                : [];
+
+            return models.length > 0 ? models : DEFAULT_AI_MODELS;
+        }
+
+        function normalizeAIStatus(status) {
+            const safeStatus = (status && typeof status === 'object') ? status : {};
+            const models = getStatusModels(safeStatus);
+            const requestedActive = String(safeStatus.activeModel || safeStatus.model || '').trim();
+            const activeModel = models.some((model) => model.id === requestedActive)
+                ? requestedActive
+                : (models[0]?.id || null);
+
+            return {
+                ...safeStatus,
+                model: activeModel,
+                activeModel,
+                availableModels: models
+            };
+        }
+
+        function buildApiUrl(base, path) {
+            if (!base) return path;
+            const normalizedBase = String(base).replace(/\/$/, '');
+            return `${normalizedBase}${path}`;
+        }
+
+        function getAIApiCandidates() {
+            const candidates = [];
+            const addCandidate = (value) => {
+                const normalized = value || '';
+                if (!candidates.includes(normalized)) {
+                    candidates.push(normalized);
+                }
+            };
+
+            addCandidate(aiApiBase || '');
+            addCandidate('');
+
+            const currentOrigin = window.location.origin || '';
+            const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(currentOrigin);
+            const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+
+            // If UI is served from any non-3000 origin (including localhost:5500/live-server),
+            // also probe the app backend on 3000.
+            if (!isLocalOrigin || currentPort !== '3000') {
+                addCandidate('http://localhost:3000');
+                addCandidate('http://127.0.0.1:3000');
+            }
+
+            return candidates;
+        }
+
+        async function fetchAIApi(path, options = {}) {
+            const candidates = getAIApiCandidates();
+            const attempted = [];
+            let lastError = null;
+
+            for (const base of candidates) {
+                const url = buildApiUrl(base, path);
+                attempted.push(url);
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            Accept: 'application/json',
+                            ...(options.headers || {})
+                        }
+                    });
+
+                    const payload = await parseApiResponse(response);
+
+                    if (payload && payload._nonJson) {
+                        lastError = new Error(payload.error || 'Unexpected non-JSON API response.');
+                        continue;
+                    }
+
+                    aiApiBase = base;
+                    return { response, payload, url };
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            const reason = lastError?.message || 'Unable to reach AI API endpoint.';
+            const attempts = attempted.length > 0 ? ` Tried: ${attempted.join(' | ')}` : '';
+            throw new Error(`${reason}${attempts}`);
+        }
+
+        async function parseApiResponse(response) {
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const rawText = await response.text();
+
+            if (!rawText) {
+                return {};
+            }
+
+            try {
+                return JSON.parse(rawText);
+            } catch (parseError) {
+                const preview = rawText.slice(0, 140).replace(/\s+/g, ' ').trim();
+                const isHtml = contentType.includes('text/html') || preview.toLowerCase().startsWith('<!doctype') || preview.toLowerCase().startsWith('<html');
+                return {
+                    _nonJson: true,
+                    error: isHtml
+                        ? 'Server returned HTML instead of API JSON. Start the app with npm start and hard refresh the page (Ctrl+F5).'
+                        : 'Server returned an unexpected response format.',
+                    details: preview
+                };
+            }
+        }
 
         function getAIModelLabel(modelId) {
             const target = String(modelId || '').trim();
-            const models = Array.isArray(aiStatusCache?.availableModels) ? aiStatusCache.availableModels : [];
+            const models = getStatusModels(aiStatusCache);
             const match = models.find((model) => model.id === target);
             return match ? match.label : (target || 'Gemini');
         }
@@ -3563,14 +3961,15 @@
             const select = document.getElementById('ai-model-select');
             if (!select) return;
 
-            const availableModels = Array.isArray(status?.availableModels) ? status.availableModels : [];
+            const normalizedStatus = normalizeAIStatus(status);
+            const availableModels = normalizedStatus.availableModels;
             if (availableModels.length === 0) {
                 select.innerHTML = '<option value="">No models available</option>';
                 select.disabled = true;
                 return;
             }
 
-            const activeModel = status.activeModel || status.model;
+            const activeModel = normalizedStatus.activeModel;
             select.disabled = false;
             select.innerHTML = availableModels.map((model) => {
                 const suffix = model.recommended ? ' (Recommended)' : '';
@@ -3618,8 +4017,16 @@
             
             // Load current status
             try {
-                const response = await fetch('/api/ai/status');
-                const status = await response.json();
+                const { response, payload } = await fetchAIApi('/api/ai/status');
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Failed to load AI status.');
+                }
+
+                if (payload._nonJson) {
+                    throw new Error(payload.error || 'AI status endpoint returned non-JSON response.');
+                }
+
+                const status = normalizeAIStatus(payload);
                 aiStatusCache = status;
                 renderAIModelSelector(status);
                 
@@ -3649,6 +4056,9 @@
                 setTimeout(() => lucide.createIcons(), 50);
             } catch (err) {
                 console.error('Error loading AI status:', err);
+                aiStatusCache = normalizeAIStatus(aiStatusCache);
+                renderAIModelSelector(aiStatusCache);
+                showErrorMessage('Could not load AI status from server. Showing default model options.');
             }
         }
 
@@ -3676,8 +4086,8 @@
             const selectedModel = modelSelect ? modelSelect.value : null;
             const previousModel = aiStatusCache?.activeModel || aiStatusCache?.model;
 
-            if (apiKey && !apiKey.startsWith('AIza')) {
-                showErrorMessage('Invalid API key format. Google Gemini keys typically start with "AIza". Get one free at aistudio.google.com/apikey');
+            if (apiKey && apiKey.length < 10) {
+                showErrorMessage('API key looks too short. Please paste your full key from aistudio.google.com/apikey.');
                 return;
             }
 
@@ -3685,15 +4095,19 @@
                 let changed = false;
 
                 if (apiKey) {
-                    const keyResponse = await fetch('/api/ai/api-key', {
+                    const { response: keyResponse, payload: keyPayload } = await fetchAIApi('/api/ai/api-key', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ apiKey })
                     });
 
                     if (!keyResponse.ok) {
-                        const keyError = await keyResponse.json();
-                        showErrorMessage(keyError.error || 'Failed to save API key');
+                        showErrorMessage(keyPayload.error || 'Failed to save API key');
+                        return;
+                    }
+
+                    if (keyPayload._nonJson) {
+                        showErrorMessage(keyPayload.error || 'Failed to save API key due to non-JSON server response.');
                         return;
                     }
 
@@ -3701,15 +4115,19 @@
                 }
 
                 if (selectedModel && selectedModel !== previousModel) {
-                    const modelResponse = await fetch('/api/ai/model', {
+                    const { response: modelResponse, payload: modelPayload } = await fetchAIApi('/api/ai/model', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ model: selectedModel })
                     });
 
                     if (!modelResponse.ok) {
-                        const modelError = await modelResponse.json();
-                        showErrorMessage(modelError.error || 'Failed to save model selection');
+                        showErrorMessage(modelPayload.error || 'Failed to save model selection');
+                        return;
+                    }
+
+                    if (modelPayload._nonJson) {
+                        showErrorMessage(modelPayload.error || 'Failed to save model selection due to non-JSON server response.');
                         return;
                     }
 
@@ -3722,8 +4140,16 @@
                     return;
                 }
 
-                const refreshed = await fetch('/api/ai/status');
-                aiStatusCache = await refreshed.json();
+                const { response: refreshed, payload: refreshedPayload } = await fetchAIApi('/api/ai/status');
+                if (!refreshed.ok) {
+                    throw new Error(refreshedPayload.error || 'Failed to refresh AI status.');
+                }
+
+                if (refreshedPayload._nonJson) {
+                    throw new Error(refreshedPayload.error || 'Failed to refresh AI status due to non-JSON server response.');
+                }
+
+                aiStatusCache = normalizeAIStatus(refreshedPayload);
                 renderAIModelSelector(aiStatusCache);
 
                 showSuccessMessage(`AI settings saved. Active model: ${getActiveAIModelLabel()}`);
@@ -3812,7 +4238,7 @@
                 </div>
             `;
 
-            setTimeout(() => lucide.createIcons(), 50);
+            lucide.createIcons();
             openFilePreviewModal();
         }
 
@@ -3871,8 +4297,8 @@
                 </div>
             `;
 
+            lucide.createIcons();
             openFilePreviewModal();
-            setTimeout(() => lucide.createIcons(), 50);
 
             // Animate progress bar
             generatingTopics.add(topicId);
@@ -4001,12 +4427,17 @@
             const generatedDate = generatedAt ? new Date(generatedAt).toLocaleString() : 'Unknown';
             const isTruncated = meta && meta.isTruncated;
             const modelLabel = (meta && (meta.modelLabel || getAIModelLabel(meta.model))) || getActiveAIModelLabel();
+            const estimatedReadTimeMinutes = Number(meta && meta.readTimeMinutes) > 0
+                ? Number(meta.readTimeMinutes)
+                : estimateReadTimeMinutes(rawMarkdownContent);
+            const readTimeLabel = `est. read time: ${estimatedReadTimeMinutes} min`;
 
             aiGeneratedContentCache.set(topicId, {
                 markdown: rawMarkdownContent,
                 title: displayTitle,
                 generatedAt,
-                modelLabel
+                modelLabel,
+                readTimeMinutes: estimatedReadTimeMinutes
             });
 
             content.innerHTML = `
@@ -4019,6 +4450,8 @@
                                 <span>AI Generated</span>
                             </span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(modelLabel)}</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">&middot;</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(readTimeLabel)}</span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">&middot;</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">${generatedDate}</span>
                         </div>
@@ -4059,7 +4492,9 @@
                     <!-- Raw view (hidden by default) -->
                     <div id="ai-raw-content" class="hidden">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(rawMarkdownContent)}</code></pre>
+                            <div class="readable-code-container">
+                                <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(rawMarkdownContent)}</code></pre>
+                            </div>
                         </div>
                     </div>
 
@@ -4071,19 +4506,16 @@
                 </div>
             `;
 
-            // Post-process code blocks + apply highlight.js
-            setTimeout(() => {
-                const mcDiv = document.querySelector('#ai-content-display .markdown-content');
-                postProcessCodeBlocks(mcDiv);
-                enableCodeBlockDragPan(document.getElementById('file-preview-content'));
-                if (window.hljs) {
-                    document.querySelectorAll('#file-preview-content .code-block-wrapper pre code').forEach((block) => {
-                        window.hljs.highlightElement(block);
-                    });
-                }
-                lucide.createIcons();
-            }, 50);
-
+            // Post-process code blocks + apply highlight.js before showing modal
+            const mcDiv = content.querySelector('#ai-content-display .markdown-content');
+            postProcessCodeBlocks(mcDiv);
+            enableCodeBlockDragPan(content);
+            if (window.hljs) {
+                content.querySelectorAll('.code-block-wrapper pre code').forEach((block) => {
+                    window.hljs.highlightElement(block);
+                });
+            }
+            lucide.createIcons();
             openFilePreviewModal();
         }
 
@@ -4250,6 +4682,9 @@
             const termEl = document.getElementById('explain-popup-term');
             const contentEl = document.getElementById('explain-popup-content');
             const cooldownRemaining = getExplainCooldownSecondsRemaining();
+
+            // Keep explain popup above fullscreen code overlay and other modals.
+            popup.style.zIndex = '10008';
 
             if (cooldownRemaining > 0) {
                 popup.style.left = Math.min(x, window.innerWidth - 420) + 'px';
@@ -4792,6 +5227,97 @@
                 .trim();
         }
 
+        function countWordUnitsForReadTime(text) {
+            const normalized = String(text || '').trim();
+            if (!normalized) return 0;
+
+            if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+                try {
+                    const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+                    let count = 0;
+                    for (const segment of segmenter.segment(normalized)) {
+                        if (segment && segment.isWordLike) {
+                            count++;
+                        }
+                    }
+                    if (count > 0) {
+                        return count;
+                    }
+                } catch (segmenterError) {
+                    // Fall back to regex-based counting.
+                }
+            }
+
+            let fallbackCount = 0;
+            try {
+                fallbackCount = (normalized.match(/[\p{L}\p{N}_'-]+/gu) || []).length;
+            } catch (regexError) {
+                fallbackCount = (normalized.match(/[A-Za-z0-9_'-]+/g) || []).length;
+            }
+
+            if (fallbackCount > 0) {
+                return fallbackCount;
+            }
+
+            // Fallback for no-space CJK content if regex/segmenter found no word units.
+            const cjkCharCount = (normalized.match(/[\u3400-\u4DBF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/g) || []).length;
+            return cjkCharCount > 0 ? Math.ceil(cjkCharCount / 2) : 0;
+        }
+
+        function extractReadTimeSignals(markdownContent) {
+            const source = String(markdownContent || '').replace(/\r\n?/g, '\n');
+            let codeLines = 0;
+
+            const withoutFencedCode = source.replace(/```([a-zA-Z0-9_+-]*)[ \t]*\n([\s\S]*?)```/g, (block, language, body) => {
+                const nonEmptyCodeLines = String(body || '')
+                    .split('\n')
+                    .filter((line) => line.trim().length > 0).length;
+                codeLines += nonEmptyCodeLines;
+                return '\n';
+            });
+
+            const tableRows = (withoutFencedCode.match(/^\s*\|.*\|\s*$/gm) || [])
+                .filter((line) => !/^\s*\|?\s*[-:]+(?:\s*\|\s*[-:]+)+\s*\|?\s*$/.test(line.trim()))
+                .length;
+
+            const listItems = (withoutFencedCode.match(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/gm) || []).length;
+
+            const proseText = withoutFencedCode
+                .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+                .replace(/`[^`]*`/g, ' ')
+                .replace(/^>\s?/gm, '')
+                .replace(/^#{1,6}\s+/gm, '')
+                .replace(/[*_~]{1,3}/g, '')
+                .replace(/<\/?[^>]+>/g, ' ')
+                .replace(/\|/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            return {
+                proseWords: countWordUnitsForReadTime(proseText),
+                codeLines,
+                tableRows,
+                listItems
+            };
+        }
+
+        function estimateReadTimeMinutes(markdownContent) {
+            const signals = extractReadTimeSignals(markdownContent);
+
+            const proseMinutes = signals.proseWords / 220;
+            const codeMinutes = signals.codeLines / 90;
+            const tableMinutes = (signals.tableRows * 2.5) / 60;
+            const listMinutes = (signals.listItems * 1.5) / 60;
+            const totalMinutes = proseMinutes + codeMinutes + tableMinutes + listMinutes;
+
+            if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) {
+                return 1;
+            }
+
+            return Math.max(1, Math.ceil(totalMinutes));
+        }
+
         function looksLikeSourceCode(content) {
             if (!content) return false;
 
@@ -5120,6 +5646,447 @@
             }
         }
 
+        function normalizeCodeLanguage(language) {
+            const raw = String(language || '').trim().toLowerCase();
+
+            if (!raw) return 'code';
+            if (raw === 'py') return 'python';
+            if (['c#', 'cs', 'c-sharp', 'dotnet'].includes(raw)) return 'csharp';
+            if (raw === 'c++') return 'cpp';
+
+            return raw;
+        }
+
+        function getCodeLanguageDisplayName(language) {
+            const normalized = normalizeCodeLanguage(language);
+            if (normalized === 'csharp') return 'c#';
+            return normalized;
+        }
+
+        function getCodeHighlightClass(language) {
+            const normalized = normalizeCodeLanguage(language);
+            if (!normalized || normalized === 'code') {
+                return '';
+            }
+            return `language-${normalized}`;
+        }
+
+        function highlightCodeElement(codeEl, languageHint) {
+            if (!codeEl) return;
+
+            const source = codeEl.textContent || '';
+            if (!window.hljs) {
+                codeEl.textContent = source;
+                return;
+            }
+
+            const normalizedLanguage = normalizeCodeLanguage(languageHint
+                || ((codeEl.className || '').match(/language-(\S+)/)?.[1])
+                || 'code');
+
+            try {
+                const hasExplicitLanguage = normalizedLanguage
+                    && normalizedLanguage !== 'code'
+                    && typeof window.hljs.getLanguage === 'function'
+                    && !!window.hljs.getLanguage(normalizedLanguage);
+
+                if (hasExplicitLanguage) {
+                    const highlighted = window.hljs.highlight(source, {
+                        language: normalizedLanguage,
+                        ignoreIllegals: true
+                    });
+                    codeEl.className = `hljs language-${normalizedLanguage}`;
+                    codeEl.innerHTML = highlighted.value;
+                    return;
+                }
+
+                const highlighted = window.hljs.highlightAuto(source);
+                const autoLanguage = highlighted.language ? ` language-${highlighted.language}` : '';
+                codeEl.className = `hljs${autoLanguage}`;
+                codeEl.innerHTML = highlighted.value;
+            } catch (error) {
+                codeEl.textContent = source;
+            }
+        }
+
+        function syncCodeFullscreenEditorLayers() {
+            const editor = document.getElementById('code-fullscreen-editor');
+            const preview = document.getElementById('code-fullscreen-editor-preview');
+            const highlights = document.getElementById('code-fullscreen-editor-line-highlights-content');
+            const markers = document.getElementById('code-fullscreen-editor-error-markers-content');
+            if (!editor || !preview || !highlights) return;
+
+            preview.scrollTop = editor.scrollTop;
+            preview.scrollLeft = editor.scrollLeft;
+            highlights.style.transform = `translateY(${-editor.scrollTop}px)`;
+            if (markers) {
+                markers.style.transform = `translateY(${-editor.scrollTop}px)`;
+            }
+        }
+
+        function renderCodeFullscreenEditorPreview() {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            const previewCode = document.getElementById('code-fullscreen-editor-preview-code');
+            if (!overlay || !editor || !previewCode) return;
+
+            const normalizedLanguage = normalizeCodeLanguage(overlay.dataset.language || 'code');
+            const source = editor.value || '';
+            const highlighterAvailable = !!window.hljs;
+
+            editor.classList.toggle('no-syntax-fallback', !highlighterAvailable);
+
+            if (!highlighterAvailable) {
+                previewCode.className = getCodeHighlightClass(normalizedLanguage);
+                previewCode.textContent = source;
+                syncCodeFullscreenEditorLayers();
+                return;
+            }
+
+            try {
+                const hasExplicitLanguage = normalizedLanguage
+                    && normalizedLanguage !== 'code'
+                    && typeof window.hljs.getLanguage === 'function'
+                    && !!window.hljs.getLanguage(normalizedLanguage);
+
+                if (hasExplicitLanguage) {
+                    const highlighted = window.hljs.highlight(source, {
+                        language: normalizedLanguage,
+                        ignoreIllegals: true
+                    });
+                    previewCode.className = `hljs language-${normalizedLanguage}`;
+                    previewCode.innerHTML = highlighted.value;
+                } else {
+                    const highlighted = window.hljs.highlightAuto(source);
+                    previewCode.className = 'hljs';
+                    previewCode.innerHTML = highlighted.value;
+                }
+            } catch (error) {
+                previewCode.className = getCodeHighlightClass(normalizedLanguage);
+                previewCode.textContent = source;
+                editor.classList.add('no-syntax-fallback');
+            }
+
+            syncCodeFullscreenEditorLayers();
+        }
+
+        function extractValidationLineNumbers(result) {
+            const numbers = new Set();
+            const diagnostics = [
+                ...(Array.isArray(result?.errors) ? result.errors : []),
+                ...(Array.isArray(result?.warnings) ? result.warnings : [])
+            ];
+
+            const addLine = (lineValue) => {
+                const parsed = Number(lineValue);
+                if (Number.isFinite(parsed) && parsed >= 1) {
+                    numbers.add(Math.floor(parsed));
+                }
+            };
+
+            diagnostics.forEach((item) => {
+                if (typeof item === 'number') {
+                    addLine(item);
+                    return;
+                }
+
+                if (item && typeof item === 'object') {
+                    if (item.line) {
+                        addLine(item.line);
+                    }
+                    if (item.lineNumber) {
+                        addLine(item.lineNumber);
+                    }
+                }
+
+                const text = String(item || '');
+                const patterns = [
+                    /\bline\s+(\d+)\b/gi,
+                    /\((\d+)\s*,\s*\d+\)/g,
+                    /\:(\d+)\:(\d+)\b/g
+                ];
+
+                patterns.forEach((pattern) => {
+                    let match;
+                    while ((match = pattern.exec(text)) !== null) {
+                        addLine(match[1]);
+                    }
+                });
+            });
+
+            return Array.from(numbers).sort((a, b) => a - b);
+        }
+
+        function buildValidationLineMessageMap(result) {
+            const map = new Map();
+
+            const pushMessage = (lineNumber, message, severity) => {
+                const parsedLine = Number(lineNumber);
+                if (!Number.isFinite(parsedLine) || parsedLine < 1) {
+                    return;
+                }
+
+                const key = Math.floor(parsedLine);
+                const safeMessage = String(message || 'Validation issue')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                if (!safeMessage) {
+                    return;
+                }
+
+                if (!map.has(key)) {
+                    map.set(key, []);
+                }
+
+                const entries = map.get(key);
+                if (!entries.some((entry) => entry.message === safeMessage && entry.severity === severity)) {
+                    entries.push({ message: safeMessage, severity });
+                }
+            };
+
+            const collect = (items, severity) => {
+                (Array.isArray(items) ? items : []).forEach((item) => {
+                    if (item && typeof item === 'object') {
+                        const objectLine = item.line || item.lineNumber;
+                        const objectMessage = item.message || item.error || item.text || JSON.stringify(item);
+                        if (objectLine) {
+                            pushMessage(objectLine, objectMessage, severity);
+                            return;
+                        }
+                    }
+
+                    const text = String(item || '').trim();
+                    if (!text) {
+                        return;
+                    }
+
+                    const patterns = [
+                        /\bline\s+(\d+)\b/gi,
+                        /\((\d+)\s*,\s*\d+\)/g,
+                        /\:(\d+)\:(\d+)\b/g
+                    ];
+
+                    patterns.forEach((pattern) => {
+                        let match;
+                        while ((match = pattern.exec(text)) !== null) {
+                            pushMessage(match[1], text, severity);
+                        }
+                    });
+
+                });
+            };
+
+            collect(result?.errors, 'error');
+            collect(result?.warnings, 'warning');
+
+            map.forEach((entries, key) => {
+                map.set(key, entries.slice(0, 4));
+            });
+
+            return map;
+        }
+
+        function getCodeValidationMessagesForLine(lineNumber) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            if (!overlay) {
+                return [];
+            }
+
+            const store = overlay._validationLineMessages;
+            if (!store || typeof store !== 'object') {
+                return [];
+            }
+
+            const key = String(Math.floor(Number(lineNumber) || 0));
+            const entries = store[key];
+            return Array.isArray(entries) ? entries : [];
+        }
+
+        function hideCodeFullscreenErrorPopover() {
+            const popover = document.getElementById('code-fullscreen-error-popover');
+            if (!popover) return;
+            popover.classList.remove('show');
+            popover.innerHTML = '';
+        }
+
+        function scheduleHideCodeFullscreenErrorPopover() {
+            if (codeErrorPopoverHideTimer) {
+                clearTimeout(codeErrorPopoverHideTimer);
+            }
+
+            codeErrorPopoverHideTimer = setTimeout(() => {
+                hideCodeFullscreenErrorPopover();
+            }, 180);
+        }
+
+        function showCodeFullscreenErrorPopover(markerEl) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const popover = document.getElementById('code-fullscreen-error-popover');
+            if (!overlay || !popover || !markerEl) return;
+
+            if (codeErrorPopoverHideTimer) {
+                clearTimeout(codeErrorPopoverHideTimer);
+                codeErrorPopoverHideTimer = null;
+            }
+
+            const lineNumber = Number(markerEl.dataset.line || 0);
+            if (!lineNumber) return;
+
+            const messages = getCodeValidationMessagesForLine(lineNumber);
+            const topEntry = messages[0] || { message: `Validation issue on line ${lineNumber}.`, severity: 'error' };
+            const remainingCount = Math.max(0, messages.length - 1);
+
+            popover.innerHTML = `
+                <div class="code-fullscreen-error-popover-title">Line ${lineNumber} ${topEntry.severity === 'warning' ? 'warning' : 'error'}</div>
+                <div class="code-fullscreen-error-popover-msg">${escapeHtml(topEntry.message)}</div>
+                ${remainingCount > 0 ? `<div class="code-fullscreen-error-popover-msg">+${remainingCount} more issue(s) on this line.</div>` : ''}
+                <button type="button" class="code-fullscreen-error-popover-btn" onclick="askAIAboutCodeError(${lineNumber})">Ask AI About This Error</button>
+            `;
+
+            const overlayRect = overlay.getBoundingClientRect();
+            const markerRect = markerEl.getBoundingClientRect();
+            const popoverWidth = Math.min(430, Math.max(240, overlayRect.width - 24));
+
+            popover.style.width = `${popoverWidth}px`;
+
+            let left = markerRect.left - overlayRect.left - popoverWidth - 10;
+            if (left < 12) {
+                left = Math.min(overlayRect.width - popoverWidth - 12, markerRect.right - overlayRect.left + 10);
+            }
+
+            const rawTop = markerRect.top - overlayRect.top - 10;
+            const top = Math.max(54, Math.min(overlayRect.height - 128, rawTop));
+
+            popover.style.left = `${left}px`;
+            popover.style.top = `${top}px`;
+            popover.classList.add('show');
+
+            popover.onmouseenter = () => {
+                if (codeErrorPopoverHideTimer) {
+                    clearTimeout(codeErrorPopoverHideTimer);
+                    codeErrorPopoverHideTimer = null;
+                }
+            };
+
+            popover.onmouseleave = () => {
+                scheduleHideCodeFullscreenErrorPopover();
+            };
+        }
+
+        function askAIAboutCodeError(lineNumber) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            if (!overlay || !editor) return;
+
+            const safeLine = Math.max(1, Math.floor(Number(lineNumber) || 1));
+            const sourceCode = String(editor.value || '');
+            const allLines = sourceCode.split('\n');
+            const start = Math.max(1, safeLine - 2);
+            const end = Math.min(allLines.length, safeLine + 2);
+            const messages = getCodeValidationMessagesForLine(safeLine);
+
+            const snippet = [];
+            for (let i = start; i <= end; i++) {
+                const prefix = i === safeLine ? '>>' : '  ';
+                snippet.push(`${prefix} ${i}: ${allLines[i - 1] || ''}`);
+            }
+
+            const diagnosticsText = messages.length > 0
+                ? messages.map((entry, index) => `${index + 1}. ${entry.message}`).join('\n')
+                : `1. Validation issue flagged on line ${safeLine}.`;
+
+            const aiTermRaw = messages[0]?.message || `Syntax issue on line ${safeLine}`;
+            const aiTerm = aiTermRaw.slice(0, 320);
+            const language = overlay.dataset.language || 'code';
+            const sourceTopicTitle = overlay.dataset.sourceTopicTitle || 'Code Validation';
+            const sourceContext = [
+                `Language: ${language}`,
+                `Validation line: ${safeLine}`,
+                `Diagnostics:\n${diagnosticsText}`,
+                `Code snippet:\n${snippet.join('\n')}`
+            ].join('\n\n');
+
+            hideCodeFullscreenErrorPopover();
+
+            const marker = document.querySelector(`.code-fullscreen-editor-error-marker[data-line="${safeLine}"]`);
+            const markerRect = marker ? marker.getBoundingClientRect() : null;
+            const anchorX = markerRect ? Math.max(12, markerRect.left - 180) : Math.max(12, window.innerWidth - 460);
+            const anchorY = markerRect ? markerRect.bottom + 10 : 160;
+
+            explainSelectedTerm(aiTerm, anchorX, anchorY, sourceTopicTitle, sourceContext);
+        }
+
+        function renderCodeFullscreenLineHighlights(lineNumbers = [], lineMessageMap = new Map()) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            const highlights = document.getElementById('code-fullscreen-editor-line-highlights-content');
+            const markers = document.getElementById('code-fullscreen-editor-error-markers-content');
+            if (!overlay || !editor || !highlights) return;
+
+            const linesInEditor = Math.max(1, (editor.value.match(/\n/g) || []).length + 1);
+            const normalized = Array.from(new Set((lineNumbers || [])
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value) && value >= 1 && value <= linesInEditor)
+                .map((value) => Math.floor(value))
+            )).sort((a, b) => a - b);
+
+            const messageStore = {};
+            if (lineMessageMap && typeof lineMessageMap.forEach === 'function') {
+                lineMessageMap.forEach((entries, key) => {
+                    const keyStr = String(Math.floor(Number(key) || 0));
+                    if (keyStr !== '0' && Array.isArray(entries) && entries.length > 0) {
+                        messageStore[keyStr] = entries;
+                    }
+                });
+            }
+
+            overlay._validationLineMessages = messageStore;
+
+            overlay.dataset.validationLines = normalized.join(',');
+            if (normalized.length === 0) {
+                highlights.innerHTML = '';
+                highlights.style.height = '0px';
+                if (markers) {
+                    markers.innerHTML = '';
+                    markers.style.height = '0px';
+                }
+                hideCodeFullscreenErrorPopover();
+                return;
+            }
+
+            const computed = window.getComputedStyle(editor);
+            const lineHeight = parseFloat(computed.lineHeight) || 22;
+            const paddingTop = parseFloat(computed.paddingTop) || 16;
+            const paddingBottom = parseFloat(computed.paddingBottom) || 16;
+            const totalHeight = Math.ceil((lineHeight * linesInEditor) + paddingTop + paddingBottom);
+
+            highlights.style.height = `${totalHeight}px`;
+            highlights.innerHTML = normalized.map((lineNumber) => {
+                const top = paddingTop + ((lineNumber - 1) * lineHeight);
+                return `<div class="code-fullscreen-editor-line-highlight" style="top:${top.toFixed(2)}px"></div>`;
+            }).join('');
+
+            if (markers) {
+                markers.style.height = `${totalHeight}px`;
+                markers.innerHTML = normalized.map((lineNumber) => {
+                    const top = paddingTop + ((lineNumber - 1) * lineHeight) + Math.max(0, (lineHeight - 16) / 2);
+                    const entries = messageStore[String(lineNumber)] || [];
+                    const isWarningOnly = entries.length > 0 && entries.every((entry) => entry.severity === 'warning');
+                    const markerClass = isWarningOnly ? 'warning' : 'error';
+                    const markerSymbol = isWarningOnly ? '?' : '!';
+                    const ariaLabel = `Line ${lineNumber} ${isWarningOnly ? 'warning' : 'error'}`;
+                    return `<button type="button" class="code-fullscreen-editor-error-marker ${markerClass}" style="top:${top.toFixed(2)}px" data-line="${lineNumber}" aria-label="${ariaLabel}" onmouseenter="showCodeFullscreenErrorPopover(this)" onmouseleave="scheduleHideCodeFullscreenErrorPopover()" onclick="askAIAboutCodeError(${lineNumber}); return false;">${markerSymbol}</button>`;
+                }).join('');
+            }
+
+            syncCodeFullscreenEditorLayers();
+        }
+
+        function clearCodeFullscreenLineHighlights() {
+            renderCodeFullscreenLineHighlights([]);
+        }
+
         // Copy code block content to clipboard
         function copyCodeBlock(btn, codeId) {
             const codeEl = document.getElementById(codeId);
@@ -5142,6 +6109,17 @@
             if (escHandler) {
                 document.removeEventListener('keydown', escHandler);
             }
+
+            const editorCleanup = overlay._editorCleanup;
+            if (typeof editorCleanup === 'function') {
+                editorCleanup();
+            }
+
+            if (codeErrorPopoverHideTimer) {
+                clearTimeout(codeErrorPopoverHideTimer);
+                codeErrorPopoverHideTimer = null;
+            }
+            hideCodeFullscreenErrorPopover();
 
             const shouldUnlockScroll = overlay.dataset.scrollWasLocked !== 'true';
             overlay.remove();
@@ -5183,12 +6161,14 @@
         function toggleCodeFullscreenEdit(btn) {
             const overlay = document.getElementById('code-fullscreen-overlay');
             const pre = document.getElementById('code-fullscreen-pre');
+            const editorShell = document.getElementById('code-fullscreen-editor-shell');
             const codeEl = document.getElementById('code-fullscreen-code');
             const editor = document.getElementById('code-fullscreen-editor');
             const validateBtn = document.getElementById('code-fullscreen-validate-btn');
             const resetBtn = document.getElementById('code-fullscreen-reset-btn');
+            const explainBtn = document.getElementById('code-fullscreen-explain-btn');
             const feedback = document.getElementById('code-fullscreen-feedback');
-            if (!overlay || !pre || !codeEl || !editor || !btn) return;
+            if (!overlay || !pre || !editorShell || !codeEl || !editor || !btn) return;
 
             const enableEdit = overlay.dataset.editMode !== 'true';
 
@@ -5196,14 +6176,19 @@
                 overlay.dataset.editMode = 'true';
                 editor.value = codeEl.textContent || '';
                 pre.classList.add('hidden');
+                editorShell.classList.add('active');
                 editor.classList.add('active');
                 btn.textContent = 'View';
                 if (validateBtn) validateBtn.style.display = 'inline-block';
                 if (resetBtn) resetBtn.style.display = 'inline-block';
+                if (explainBtn) explainBtn.style.display = 'inline-block';
                 if (feedback) {
                     feedback.className = 'code-fullscreen-feedback';
                     feedback.innerHTML = '';
                 }
+                hideCodeFullscreenErrorPopover();
+                clearCodeFullscreenLineHighlights();
+                renderCodeFullscreenEditorPreview();
                 editor.focus();
                 return;
             }
@@ -5212,18 +6197,20 @@
             const updatedCode = editor.value || '';
             codeEl.textContent = updatedCode;
             pre.classList.remove('hidden');
+            editorShell.classList.remove('active');
             editor.classList.remove('active');
             btn.textContent = 'Edit';
             if (validateBtn) validateBtn.style.display = 'none';
             if (resetBtn) resetBtn.style.display = 'none';
+            if (explainBtn) explainBtn.style.display = 'none';
             if (feedback) {
                 feedback.className = 'code-fullscreen-feedback';
                 feedback.innerHTML = '';
             }
+            hideCodeFullscreenErrorPopover();
+            clearCodeFullscreenLineHighlights();
 
-            if (window.hljs && codeEl.className && codeEl.className.includes('language-')) {
-                window.hljs.highlightElement(codeEl);
-            }
+            highlightCodeElement(codeEl, overlay.dataset.language || 'code');
         }
 
         function resetCodeFullscreenEdits() {
@@ -5237,6 +6224,8 @@
             }
 
             editor.value = overlay.dataset.originalCode || '';
+            renderCodeFullscreenEditorPreview();
+            clearCodeFullscreenLineHighlights();
             if (feedback) {
                 feedback.className = 'code-fullscreen-feedback';
                 feedback.innerHTML = '';
@@ -5255,6 +6244,12 @@
             const errors = Array.isArray(result?.errors) ? result.errors : [];
             const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
             const hints = Array.isArray(result?.hints) ? result.hints : [];
+            const lineMessageMap = buildValidationLineMessageMap(result);
+            const lineNumbers = lineMessageMap.size > 0
+                ? Array.from(lineMessageMap.keys()).sort((a, b) => a - b)
+                : extractValidationLineNumbers(result);
+
+            renderCodeFullscreenLineHighlights(lineNumbers, lineMessageMap);
 
             const badgeClass = mode === 'real'
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
@@ -5278,6 +6273,7 @@
                 </div>
                 <p class="mt-1 opacity-90">${escapeHtml(summary)}</p>
                 <p class="mt-1 text-[11px] opacity-80">Engine: ${escapeHtml(engine)}</p>
+                ${lineNumbers.length > 0 ? `<p class="mt-1 text-[11px] opacity-85">Highlighted lines in editor: ${lineNumbers.join(', ')}</p>` : ''}
                 ${renderList('Errors', errors)}
                 ${renderList('Warnings', warnings)}
                 ${renderList('Educational Hints', hints)}
@@ -5337,6 +6333,59 @@
             }
         }
 
+        function explainCodeSelectionFromEditor(btn) {
+            const overlay = document.getElementById('code-fullscreen-overlay');
+            const editor = document.getElementById('code-fullscreen-editor');
+            if (!overlay || !editor) return;
+
+            if (overlay.dataset.editMode !== 'true') {
+                showErrorMessage('Explain Selection is available only in Edit mode.');
+                return;
+            }
+
+            const start = Number(editor.selectionStart || 0);
+            const end = Number(editor.selectionEnd || 0);
+            if (end <= start) {
+                showErrorMessage('Select code or an error message segment first.');
+                return;
+            }
+
+            const rawSelection = String(editor.value || '').slice(start, end).trim();
+            if (!rawSelection || rawSelection.length < 2) {
+                showErrorMessage('Selected text is too short to explain.');
+                return;
+            }
+
+            const term = rawSelection.slice(0, 350);
+            const source = String(editor.value || '');
+            const beforeSelection = source.slice(0, start);
+            const startLine = Math.max(1, beforeSelection.split('\n').length);
+            const allLines = source.split('\n');
+            const contextFrom = Math.max(1, startLine - 2);
+            const contextTo = Math.min(allLines.length, startLine + 2);
+            const snippet = [];
+            for (let i = contextFrom; i <= contextTo; i++) {
+                const marker = i === startLine ? '>>' : '  ';
+                snippet.push(`${marker} ${i}: ${allLines[i - 1] || ''}`);
+            }
+
+            const language = overlay.dataset.language || 'code';
+            const sourceTopicTitle = overlay.dataset.sourceTopicTitle || 'Code Validation';
+            const sourceContext = [
+                `Language: ${language}`,
+                `Selection starts at line: ${startLine}`,
+                `Code snippet:\n${snippet.join('\n')}`
+            ].join('\n\n');
+
+            hideCodeFullscreenErrorPopover();
+
+            const rect = btn ? btn.getBoundingClientRect() : null;
+            const anchorX = rect ? Math.max(12, rect.left - 220) : Math.max(12, window.innerWidth - 460);
+            const anchorY = rect ? rect.bottom + 8 : 150;
+
+            explainSelectedTerm(term, anchorX, anchorY, sourceTopicTitle, sourceContext);
+        }
+
         function openCodeFullscreen(codeId, language) {
             const codeEl = document.getElementById(codeId);
             if (!codeEl) return;
@@ -5353,16 +6402,22 @@
                 overlay.dataset.sourceTopicTitle = sourceTopicTitle;
             }
 
-            const safeLanguage = (language || 'code').toLowerCase();
+            const existingLanguageClass = (codeEl.className || '').split(/\s+/).find((token) => token.startsWith('language-')) || '';
+            const existingLanguage = existingLanguageClass ? existingLanguageClass.replace('language-', '') : '';
+            const normalizedLanguage = normalizeCodeLanguage(language || existingLanguage || 'code');
+            const languageBadge = getCodeLanguageDisplayName(normalizedLanguage);
+            const highlightClass = getCodeHighlightClass(normalizedLanguage) || existingLanguageClass;
+
             const header = document.createElement('div');
             header.className = 'code-fullscreen-header';
             header.innerHTML = '<div class="code-fullscreen-title">'
                 + '<span>Code — Fullscreen</span>'
-                + '<span style="opacity:0.78;font-weight:500;font-size:0.78rem;">' + safeLanguage + '</span>'
+                + '<span style="opacity:0.78;font-weight:500;font-size:0.78rem;">' + escapeHtml(languageBadge) + '</span>'
                 + '</div>'
                 + '<div class="code-fullscreen-actions">'
                 + '<button class="code-fullscreen-btn" onclick="toggleCodeFullscreenWrap(this)">Wrap: On</button>'
                 + '<button class="code-fullscreen-btn" id="code-fullscreen-edit-btn" onclick="toggleCodeFullscreenEdit(this)">Edit</button>'
+                + '<button class="code-fullscreen-btn" id="code-fullscreen-explain-btn" onclick="explainCodeSelectionFromEditor(this)" style="display:none;">Explain Selection</button>'
                 + '<button class="code-fullscreen-btn" id="code-fullscreen-validate-btn" onclick="validateCodeFullscreen(this)" style="display:none;">Validate</button>'
                 + '<button class="code-fullscreen-btn" id="code-fullscreen-reset-btn" onclick="resetCodeFullscreenEdits()" style="display:none;">Reset</button>'
                 + '<button class="code-fullscreen-btn" onclick="copyCodeFullscreen(this)">Copy</button>'
@@ -5378,29 +6433,73 @@
 
             const fullCode = document.createElement('code');
             fullCode.id = 'code-fullscreen-code';
-            fullCode.className = codeEl.className || (safeLanguage ? `language-${safeLanguage}` : '');
+            fullCode.className = highlightClass;
             fullCode.textContent = codeEl.textContent || '';
+
+            const editorShell = document.createElement('div');
+            editorShell.id = 'code-fullscreen-editor-shell';
+            editorShell.className = 'code-fullscreen-editor-shell';
+
+            const highlightsLayer = document.createElement('div');
+            highlightsLayer.id = 'code-fullscreen-editor-line-highlights';
+            highlightsLayer.className = 'code-fullscreen-editor-line-highlights';
+
+            const highlightsContent = document.createElement('div');
+            highlightsContent.id = 'code-fullscreen-editor-line-highlights-content';
+            highlightsContent.className = 'code-fullscreen-editor-line-highlights-content';
+            highlightsLayer.appendChild(highlightsContent);
+
+            const errorMarkersLayer = document.createElement('div');
+            errorMarkersLayer.id = 'code-fullscreen-editor-error-markers';
+            errorMarkersLayer.className = 'code-fullscreen-editor-error-markers';
+
+            const errorMarkersContent = document.createElement('div');
+            errorMarkersContent.id = 'code-fullscreen-editor-error-markers-content';
+            errorMarkersContent.className = 'code-fullscreen-editor-error-markers-content';
+            errorMarkersLayer.appendChild(errorMarkersContent);
+
+            const editorPreview = document.createElement('pre');
+            editorPreview.id = 'code-fullscreen-editor-preview';
+            editorPreview.className = 'code-fullscreen-editor-preview';
+
+            const editorPreviewCode = document.createElement('code');
+            editorPreviewCode.id = 'code-fullscreen-editor-preview-code';
+            editorPreviewCode.className = highlightClass;
+            editorPreviewCode.textContent = fullCode.textContent || '';
+            editorPreview.appendChild(editorPreviewCode);
 
             const editor = document.createElement('textarea');
             editor.id = 'code-fullscreen-editor';
             editor.className = 'code-fullscreen-editor';
             editor.setAttribute('spellcheck', 'false');
+            editor.setAttribute('wrap', 'off');
             editor.value = fullCode.textContent;
 
             const feedback = document.createElement('div');
             feedback.id = 'code-fullscreen-feedback';
             feedback.className = 'code-fullscreen-feedback';
 
+            const errorPopover = document.createElement('div');
+            errorPopover.id = 'code-fullscreen-error-popover';
+            errorPopover.className = 'code-fullscreen-error-popover';
+
             pre.appendChild(fullCode);
+            editorShell.appendChild(highlightsLayer);
+            editorShell.appendChild(errorMarkersLayer);
+            editorShell.appendChild(editorPreview);
+            editorShell.appendChild(editor);
             body.appendChild(pre);
-            body.appendChild(editor);
+            body.appendChild(editorShell);
             body.appendChild(feedback);
             overlay.appendChild(header);
             overlay.appendChild(body);
+            overlay.appendChild(errorPopover);
             document.body.appendChild(overlay);
-            overlay.dataset.language = safeLanguage;
+            overlay.dataset.language = normalizedLanguage;
             overlay.dataset.editMode = 'false';
             overlay.dataset.originalCode = fullCode.textContent || '';
+            overlay.dataset.validationLines = '';
+            overlay._validationLineMessages = {};
 
             const escHandler = (e) => {
                 if (e.key === 'Escape') {
@@ -5410,15 +6509,45 @@
             overlay._escHandler = escHandler;
             document.addEventListener('keydown', escHandler);
 
+            const handleEditorInput = () => {
+                renderCodeFullscreenEditorPreview();
+
+                const storedLines = String(overlay.dataset.validationLines || '')
+                    .split(',')
+                    .map((value) => Number(value))
+                    .filter((value) => Number.isFinite(value) && value >= 1);
+
+                if (storedLines.length > 0) {
+                    const currentMap = new Map(
+                        Object.entries(overlay._validationLineMessages || {}).map(([key, entries]) => [
+                            Number(key),
+                            Array.isArray(entries) ? entries : []
+                        ])
+                    );
+                    renderCodeFullscreenLineHighlights(storedLines, currentMap);
+                }
+            };
+
+            const handleEditorScroll = () => {
+                syncCodeFullscreenEditorLayers();
+            };
+
+            editor.addEventListener('input', handleEditorInput);
+            editor.addEventListener('scroll', handleEditorScroll);
+            overlay._editorCleanup = () => {
+                editor.removeEventListener('input', handleEditorInput);
+                editor.removeEventListener('scroll', handleEditorScroll);
+            };
+
             const scrollWasLocked = document.body.style.overflow === 'hidden';
             overlay.dataset.scrollWasLocked = scrollWasLocked ? 'true' : 'false';
             if (!scrollWasLocked) {
                 lockScroll();
             }
 
-            if (window.hljs && fullCode.className && fullCode.className.includes('language-')) {
-                window.hljs.highlightElement(fullCode);
-            }
+            renderCodeFullscreenEditorPreview();
+
+            highlightCodeElement(fullCode, normalizedLanguage);
         }
 
         // Post-process rendered HTML: wrap any bare <pre><code> blocks with ChatGPT-style wrapper
@@ -6250,7 +7379,9 @@
                     }
                     contentDisplay = `
                         <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
-                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</code></pre>
+                            <div class="readable-code-container">
+                                <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed ${syntaxClass}">${escapeHtml(previewData.content)}</code></pre>
+                            </div>
                         </div>
                     `;
                 }
@@ -6276,7 +7407,9 @@
                             ${isMarkdown ? `
                                 <div id="raw-content" class="hidden">
                                     <div class="bg-gray-50 dark:bg-gray-800 preview-content-area">
-                                        <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</code></pre>
+                                        <div class="readable-code-container">
+                                            <pre><code class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre font-mono leading-relaxed language-markdown">${escapeHtml(previewData.content)}</code></pre>
+                                        </div>
                                     </div>
                                 </div>
                             ` : ''}
@@ -7598,7 +8731,7 @@
     // Load calendar with time tracking data
     async function loadTimeTrackingCalendar() {
         try {
-            const response = await fetch('/api/time-tracking/calendar');
+            const response = await fetch('/api/time-tracking/calendar?monthsBack=24');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

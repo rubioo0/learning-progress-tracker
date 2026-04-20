@@ -51,6 +51,7 @@ module.exports = {
     ],
     AI_DEFAULT_MODEL: process.env.AI_DEFAULT_MODEL || 'gemini-2.5-flash',
     AI_FALLBACK_ORDER: parseList(process.env.AI_FALLBACK_ORDER, ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']),
+    AI_ALLOW_MODEL_FALLBACK: parseBoolean(process.env.AI_ALLOW_MODEL_FALLBACK, true),
     AI_RETRY: {
         maxRetriesPerModel: parseNumber(process.env.AI_RETRY_MAX_RETRIES_PER_MODEL, 3),
         baseDelayMs: parseNumber(process.env.AI_RETRY_BASE_DELAY_MS, 3000),

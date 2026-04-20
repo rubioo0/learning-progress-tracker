@@ -1180,7 +1180,7 @@ app.get('/api/time-tracking/total', (req, res) => {
 // Get time tracking calendar data
 app.get('/api/time-tracking/calendar', async (req, res) => {
     try {
-        const { userId = 'default_user', monthsBack = 6 } = req.query;
+        const { userId = 'default_user', monthsBack = 24 } = req.query;
         
         if (!errorHandler.validateUserId(userId)) {
             return errorHandler.handleError(
@@ -1710,7 +1710,7 @@ app.get('/api/learning-sessions/calculate', async (req, res) => {
 // Get calendar data for learning sessions
 app.get('/api/learning-sessions/calendar-data', async (req, res) => {
     try {
-        const { userId = 'default_user', monthsBack = 6 } = req.query;
+        const { userId = 'default_user', monthsBack = 24 } = req.query;
 
         if (!errorHandler.validateUserId(userId)) {
             return errorHandler.handleError(
