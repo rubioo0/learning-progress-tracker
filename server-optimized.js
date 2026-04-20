@@ -494,6 +494,8 @@ app.post('/api/topics/:id/generate-content', async (req, res) => {
             fallbackUsed: !!result.fallbackUsed,
             attempts: result.attempts || 1,
             attemptedModels: result.attemptedModels || [result.model],
+            generationProfile: result.generationProfile || 'standard',
+            maxOutputTokensRequested: result.maxOutputTokensRequested || null,
             stopReason: result.stopReason || 'STOP',
             usage: result.usage || null
         };
@@ -654,6 +656,8 @@ async function processBatchQueue() {
                 fallbackUsed: !!result.fallbackUsed,
                 attempts: result.attempts || 1,
                 attemptedModels: result.attemptedModels || [result.model],
+                generationProfile: result.generationProfile || 'standard',
+                maxOutputTokensRequested: result.maxOutputTokensRequested || null,
                 stopReason: result.stopReason || 'STOP',
                 usage: result.usage || null,
                 batch: true

@@ -44,8 +44,9 @@ class GeminiAIService {
             jitterMs: Number(config.AI_RETRY?.jitterMs) || 700
         };
         this.generationLimits = {
-            generateMaxOutputTokens: Math.max(2048, Number(config.AI_GENERATE_MAX_OUTPUT_TOKENS) || 12288),
-            generateReducedOutputTokens: Math.max(2048, Number(config.AI_GENERATE_REDUCED_OUTPUT_TOKENS) || 8192),
+            generateMaxOutputTokens: Math.max(2048, Number(config.AI_GENERATE_MAX_OUTPUT_TOKENS) || 8192),
+            generateReducedOutputTokens: Math.max(2048, Number(config.AI_GENERATE_REDUCED_OUTPUT_TOKENS) || 4096),
+            generateEmergencyOutputTokens: Math.max(1024, Number(config.AI_GENERATE_EMERGENCY_OUTPUT_TOKENS) || 3072),
             explainMaxOutputTokens: Math.max(512, Number(config.AI_EXPLAIN_MAX_OUTPUT_TOKENS) || 2048)
         };
 
@@ -53,6 +54,13 @@ class GeminiAIService {
             this.generationLimits.generateReducedOutputTokens = Math.max(
                 2048,
                 Math.floor(this.generationLimits.generateMaxOutputTokens * 0.67)
+            );
+        }
+
+        if (this.generationLimits.generateEmergencyOutputTokens >= this.generationLimits.generateReducedOutputTokens) {
+            this.generationLimits.generateEmergencyOutputTokens = Math.max(
+                1024,
+                Math.floor(this.generationLimits.generateReducedOutputTokens * 0.75)
             );
         }
         this.allowModelFallback = config.AI_ALLOW_MODEL_FALLBACK !== false;
@@ -254,6 +262,12 @@ class GeminiAIService {
             activeModelLabel: this.getModelLabel(this.modelConfig.activeModel),
             fallbackOrder: [...this.modelConfig.fallbackOrder],
             allowModelFallback: this.allowModelFallback,
+            generationLimits: {
+                generateMaxOutputTokens: this.generationLimits.generateMaxOutputTokens,
+                generateReducedOutputTokens: this.generationLimits.generateReducedOutputTokens,
+                generateEmergencyOutputTokens: this.generationLimits.generateEmergencyOutputTokens,
+                explainMaxOutputTokens: this.generationLimits.explainMaxOutputTokens
+            },
             availableModels: [...this.availableModels]
         };
     }
@@ -518,7 +532,8 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
         };
 
         let generated;
-        let usedReducedOutputProfile = false;
+        let generationProfile = 'standard';
+        let maxOutputTokensRequested = primaryGenerationConfig.maxOutputTokens;
 
         try {
             generated = await this._generateWithFallback(
@@ -536,16 +551,43 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                 throw error;
             }
 
-            generated = await this._generateWithFallback(
-                prompt,
-                {
+            try {
+                const reducedGenerationConfig = {
                     maxOutputTokens: this.generationLimits.generateReducedOutputTokens,
                     temperature: 0.75
-                },
-                'generate-reduced',
-                Math.max(2, this.retryConfig.maxRetriesPerModel - 1)
-            );
-            usedReducedOutputProfile = true;
+                };
+
+                generated = await this._generateWithFallback(
+                    prompt,
+                    reducedGenerationConfig,
+                    'generate-reduced',
+                    Math.max(2, this.retryConfig.maxRetriesPerModel - 1)
+                );
+                generationProfile = 'reduced-output';
+                maxOutputTokensRequested = reducedGenerationConfig.maxOutputTokens;
+            } catch (reducedError) {
+                const reducedMessage = reducedError.message || '';
+                const retryWithEmergencyProfile = this._isRetryableOverloadError(reducedMessage)
+                    || reducedMessage.includes('temporarily overloaded (503)');
+
+                if (!retryWithEmergencyProfile) {
+                    throw reducedError;
+                }
+
+                const emergencyGenerationConfig = {
+                    maxOutputTokens: this.generationLimits.generateEmergencyOutputTokens,
+                    temperature: 0.65
+                };
+
+                generated = await this._generateWithFallback(
+                    prompt,
+                    emergencyGenerationConfig,
+                    'generate-emergency',
+                    Math.max(1, this.retryConfig.maxRetriesPerModel - 2)
+                );
+                generationProfile = 'emergency-low-output';
+                maxOutputTokensRequested = emergencyGenerationConfig.maxOutputTokens;
+            }
         }
 
         const response = generated.result.response;
@@ -573,7 +615,8 @@ Keep it focused and practical — under 300 words total. Use Markdown formatting
                 totalTokens: usage.totalTokenCount || 0,
                 thoughtsTokenCount: usage.thoughtsTokenCount || 0
             },
-            generationProfile: usedReducedOutputProfile ? 'reduced-output' : 'standard',
+            generationProfile,
+            maxOutputTokensRequested,
             stopReason: finishReason || 'STOP',
             isTruncated,
             generatedAt: new Date().toISOString()

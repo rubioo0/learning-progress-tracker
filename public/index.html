@@ -4398,6 +4398,14 @@
                         const modelUsedLabel = data.modelLabel || getAIModelLabel(data.model) || data.model || 'fallback model';
                         showSuccessMessage(`Generated with fallback model: ${modelUsedLabel}`);
                     }
+
+                    if (data.generationProfile === 'reduced-output') {
+                        showSuccessMessage('Generated successfully using reduced output profile to avoid overload.');
+                    }
+
+                    if (data.generationProfile === 'emergency-low-output') {
+                        showSuccessMessage('Generated successfully using emergency low-output profile due temporary overload.');
+                    }
                     
                     if (progressBar) { progressBar.style.width = '100%'; }
                     if (progressText) { progressText.textContent = 'Content generated successfully!'; }
