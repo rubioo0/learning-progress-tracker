@@ -98,6 +98,18 @@ If you already have data in learning_progress.db, run:
 node scripts/migrate-sqlite-to-postgres.js
 ```
 
+If your source is a JSON backup instead of SQLite, import it into local SQLite first:
+
+```powershell
+node scripts/import-json-state-to-sqlite.js path\to\your-backup.json --clear
+```
+
+Then run the Neon migration command:
+
+```powershell
+node scripts/migrate-sqlite-to-postgres.js
+```
+
 Optional: specify a custom SQLite file path:
 
 ```powershell
