@@ -422,6 +422,89 @@ Use Markdown formatting throughout: headers (##, ###), tables where useful for c
     }
 
     /**
+     * Build a prompt asking for structured JSON multiple-choice questions for a topic.
+     * Used for scored practice quizzes / mock exams, distinct from the free-form
+     * "Practice Questions" markdown section in buildBookStudyPrompt (that one is for
+     * reading, this one produces machine-scorable questions).
+     */
+    buildQuizPrompt(topic) {
+        const moduleContext = topic.module ? `\nBook / Chapter: ${topic.module}` : '';
+        const notesContext = topic.notes ? `\n${topic.notes}` : '';
+
+        return `You are a certification exam item writer. Write 6 multiple-choice questions testing understanding of the following syllabus section, in the style of a real certification exam (e.g. ISTQB).
+
+## SECTION: ${topic.title}
+${moduleContext}${notesContext}
+
+## RULES
+- Exactly 4 options per question, only one correct.
+- Vary which option index (0-3) is correct across questions — don't always put the answer in the same position.
+- Distractor (wrong) options must be plausible, not obviously silly — use common misconceptions or easily-confused terms.
+- Keep each question and option concise (1-2 sentences max).
+- Write a one-sentence explanation of why the correct answer is right.
+- Do not invent specific official Learning Objective codes/K-levels; test conceptual understanding instead.
+
+## OUTPUT FORMAT
+Respond with ONLY valid JSON, no markdown fences, no commentary, matching exactly this shape:
+{"questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"..."}]}`;
+    }
+
+    /**
+     * Generate a scored 6-question MCQ quiz for a topic. Unlike generateContent(),
+     * this asks for strict JSON so answers can be checked server-side.
+     */
+    async generateQuiz(topic) {
+        if (!this.client) {
+            throw new Error('Gemini API key not configured. Please set your API key in Settings.');
+        }
+
+        const prompt = this.buildQuizPrompt(topic);
+        const generated = await this._generateWithFallback(
+            prompt,
+            {
+                maxOutputTokens: 3072,
+                temperature: 0.7,
+                responseMimeType: 'application/json'
+            },
+            'quiz',
+            Math.max(2, this.retryConfig.maxRetriesPerModel - 1)
+        );
+
+        const text = generated.result.response.text();
+        if (!text || text.trim().length === 0) {
+            throw new Error('Gemini returned an empty quiz response');
+        }
+
+        let parsed;
+        try {
+            // Defensive: strip ```json fences in case a fallback model ignores responseMimeType
+            const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+            parsed = JSON.parse(cleaned);
+        } catch (parseError) {
+            throw new Error('Gemini returned malformed quiz JSON: ' + parseError.message);
+        }
+
+        const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
+        const validQuestions = questions.filter(q =>
+            q && typeof q.question === 'string' &&
+            Array.isArray(q.options) && q.options.length === 4 &&
+            Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex <= 3
+        );
+
+        if (validQuestions.length === 0) {
+            throw new Error('Gemini did not return any valid quiz questions');
+        }
+
+        return {
+            questions: validQuestions,
+            model: generated.modelId,
+            modelLabel: this.getModelLabel(generated.modelId),
+            fallbackUsed: generated.fallbackUsed,
+            generatedAt: new Date().toISOString()
+        };
+    }
+
+    /**
      * Build a prompt for explaining an unknown term/concept (inline learning assistant)
      */
     buildExplainPrompt(term, sourceTopicTitle, sourceContext) {

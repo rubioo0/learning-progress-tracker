@@ -551,11 +551,160 @@ app.post('/api/topics/:id/generate-content', async (req, res) => {
 // Clear generated content for a topic (allows regeneration)
 app.delete('/api/topics/:id/generated-content', (req, res) => {
     const { id } = req.params;
-    
+
     dbService.clearGeneratedContent(id, (err) => {
         if (err) return helpers.handleDatabaseError(res, err);
         res.json({ message: 'Generated content cleared', topicId: id });
     });
+});
+
+// ============ Quiz (scored MCQs — practice quizzes, mock exams, spaced-repetition review) ============
+// One question pool feeds all three: practice quiz (per topic), mock exam (random pool
+// across a category), and the review queue (previously-answered questions coming due).
+// /api/quiz/submit is the single scoring path all three use, so review scheduling stays
+// consistent regardless of where the answer came from.
+
+// Never send correct_index/explanation to the client before they submit an answer.
+function sanitizeQuizQuestion(q) {
+    return {
+        id: q.id,
+        topicId: q.topic_id,
+        question: q.question_text,
+        options: q.options,
+        topicTitle: q.topic_title || null,
+        topicModule: q.topic_module || null
+    };
+}
+
+// Get a topic's existing quiz (empty array if none generated yet)
+app.get('/api/topics/:id/quiz', (req, res) => {
+    const { id } = req.params;
+    dbService.getQuizQuestionsByTopic(id, (err, questions) => {
+        if (err) return helpers.handleDatabaseError(res, err);
+        res.json({ topicId: id, questions: questions.map(sanitizeQuizQuestion) });
+    });
+});
+
+// Generate (or regenerate) a topic's quiz via Gemini
+app.post('/api/topics/:id/quiz/generate', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const topic = await new Promise((resolve, reject) => {
+            dbService.getTopicById(id, (err, row) => err ? reject(err) : resolve(row));
+        });
+
+        if (!topic) return res.status(404).json({ error: 'Topic not found' });
+
+        const result = await geminiAI.generateQuiz(topic);
+
+        await new Promise((resolve, reject) => {
+            dbService.replaceQuizQuestionsForTopic(id, result.questions, (err) => err ? reject(err) : resolve());
+        });
+
+        const saved = await new Promise((resolve, reject) => {
+            dbService.getQuizQuestionsByTopic(id, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+
+        res.json({
+            topicId: id,
+            questions: saved.map(sanitizeQuizQuestion),
+            model: result.model,
+            modelLabel: result.modelLabel,
+            fallbackUsed: result.fallbackUsed
+        });
+    } catch (error) {
+        console.error(`Error generating quiz for topic ${id}:`, error.message);
+        res.status(getAIErrorStatus(error.message)).json({
+            error: error.message || 'Failed to generate quiz',
+            topicId: id
+        });
+    }
+});
+
+// Questions coming due for spaced-repetition review, across all topics
+app.get('/api/quiz/review-due', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    dbService.getDueReviewQuestions(limit, (err, questions) => {
+        if (err) return helpers.handleDatabaseError(res, err);
+        res.json({ questions: questions.map(sanitizeQuizQuestion), count: questions.length });
+    });
+});
+
+// Random question pool for a timed mock exam (default: 40 questions from "Books", matching the ISTQB CTFL format)
+app.get('/api/quiz/mock-exam', (req, res) => {
+    const count = Math.min(parseInt(req.query.count, 10) || 40, 100);
+    const category = req.query.category || 'Books';
+    dbService.getRandomQuizQuestions(category, count, (err, questions) => {
+        if (err) return helpers.handleDatabaseError(res, err);
+        res.json({ questions: questions.map(sanitizeQuizQuestion), count: questions.length, category });
+    });
+});
+
+// Score a batch of answers. Shared by practice quizzes, review sessions, and mock
+// exams — every submission updates each question's spaced-repetition schedule.
+app.post('/api/quiz/submit', async (req, res) => {
+    const { answers } = req.body; // [{ questionId, selectedIndex }]
+
+    if (!Array.isArray(answers) || answers.length === 0) {
+        return res.status(400).json({ error: 'Provide an array of answers' });
+    }
+
+    try {
+        const ids = answers.map(a => a.questionId);
+        const questions = await new Promise((resolve, reject) => {
+            dbService.getQuizQuestionsByIds(ids, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+        const byId = new Map(questions.map(q => [q.id, q]));
+
+        const results = [];
+        for (const answer of answers) {
+            const question = byId.get(answer.questionId);
+            if (!question) continue;
+
+            const isCorrect = question.correct_index === answer.selectedIndex;
+            await new Promise((resolve, reject) => {
+                dbService.recordQuizAnswer(question.id, isCorrect, (err) => err ? reject(err) : resolve());
+            });
+
+            results.push({
+                questionId: question.id,
+                question: question.question_text,
+                options: question.options,
+                selectedIndex: answer.selectedIndex,
+                correctIndex: question.correct_index,
+                correct: isCorrect,
+                explanation: question.explanation,
+                topicTitle: question.topic_title || null,
+                topicModule: question.topic_module || null
+            });
+        }
+
+        const total = results.length;
+        const correctCount = results.filter(r => r.correct).length;
+        const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+        // Per-chapter/module breakdown for the mock exam results screen
+        const breakdown = {};
+        results.forEach(r => {
+            const key = r.topicModule || 'Other';
+            if (!breakdown[key]) breakdown[key] = { total: 0, correct: 0 };
+            breakdown[key].total++;
+            if (r.correct) breakdown[key].correct++;
+        });
+
+        res.json({
+            score: correctCount,
+            total,
+            percentage,
+            passed: percentage >= 65,
+            results,
+            breakdown
+        });
+    } catch (error) {
+        console.error('Error scoring quiz submission:', error.message);
+        res.status(500).json({ error: error.message || 'Failed to score quiz' });
+    }
 });
 
 // ============ Batch Generation ============

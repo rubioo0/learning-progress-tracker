@@ -272,6 +272,20 @@ class PostgresDatabaseService {
 				earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 				type TEXT
 			)`,
+			`CREATE TABLE IF NOT EXISTS quiz_questions (
+				id SERIAL PRIMARY KEY,
+				topic_id INTEGER NOT NULL,
+				question_text TEXT NOT NULL,
+				options TEXT NOT NULL,
+				correct_index INTEGER NOT NULL,
+				explanation TEXT,
+				times_seen INTEGER DEFAULT 0,
+				times_correct INTEGER DEFAULT 0,
+				interval_days INTEGER DEFAULT 0,
+				next_review_at TEXT,
+				last_answered_at TEXT,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)`,
 			`CREATE TABLE IF NOT EXISTS time_tracking_sessions (
 				id TEXT PRIMARY KEY,
 				user_id TEXT DEFAULT 'default_user',

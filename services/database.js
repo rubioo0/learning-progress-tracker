@@ -118,6 +118,25 @@ class DatabaseService {
                 earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 type TEXT
             )`);
+
+            // Scored multiple-choice quiz questions, generated per topic. Also carries
+            // simple spaced-repetition state (times_seen/times_correct/interval_days/
+            // next_review_at) so the same questions power practice quizzes, the review
+            // queue, and mock exams without separate tables for each.
+            this.db.run(`CREATE TABLE IF NOT EXISTS quiz_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                topic_id INTEGER NOT NULL,
+                question_text TEXT NOT NULL,
+                options TEXT NOT NULL,
+                correct_index INTEGER NOT NULL,
+                explanation TEXT,
+                times_seen INTEGER DEFAULT 0,
+                times_correct INTEGER DEFAULT 0,
+                interval_days INTEGER DEFAULT 0,
+                next_review_at TEXT,
+                last_answered_at TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
         });
     }
 
@@ -751,12 +770,113 @@ class DatabaseService {
         this.db.serialize(() => {
             this.db.run('DELETE FROM topics');
             this.db.run('DELETE FROM progress');
-            this.db.run('DELETE FROM achievements', callback);
+            this.db.run('DELETE FROM achievements');
+            this.db.run('DELETE FROM quiz_questions', callback);
         });
     }
 
     getDatabase() {
         return this.db;
+    }
+
+    // ---- Quiz questions (scored MCQs, shared by practice quizzes, mock exams, and the spaced-repetition review queue) ----
+
+    // Replaces a topic's quiz wholesale — regenerating a quiz drops old questions
+    // (and their review history) rather than merging, since a re-generated set may
+    // no longer line up 1:1 with the old one.
+    replaceQuizQuestionsForTopic(topicId, questions, callback) {
+        this.db.run('DELETE FROM quiz_questions WHERE topic_id = ?', [topicId], (err) => {
+            if (err) return callback(err);
+            if (!questions || questions.length === 0) return callback(null);
+
+            const stmt = this.db.prepare(`
+                INSERT INTO quiz_questions (topic_id, question_text, options, correct_index, explanation)
+                VALUES (?, ?, ?, ?, ?)
+            `);
+
+            questions.forEach(q => {
+                stmt.run([topicId, q.question, JSON.stringify(q.options), q.correctIndex, q.explanation || '']);
+            });
+
+            stmt.finalize(callback);
+        });
+    }
+
+    getQuizQuestionsByTopic(topicId, callback) {
+        this.db.all('SELECT * FROM quiz_questions WHERE topic_id = ? ORDER BY id', [topicId], (err, rows) => {
+            if (err) return callback(err);
+            callback(null, (rows || []).map(row => ({ ...row, options: JSON.parse(row.options) })));
+        });
+    }
+
+    getQuizQuestionsByIds(ids, callback) {
+        if (!ids || ids.length === 0) return callback(null, []);
+        const placeholders = ids.map(() => '?').join(',');
+        this.db.all(`
+            SELECT qq.*, t.title as topic_title, t.module as topic_module, t.category as topic_category
+            FROM quiz_questions qq
+            JOIN topics t ON t.id = qq.topic_id
+            WHERE qq.id IN (${placeholders})
+        `, ids, (err, rows) => {
+            if (err) return callback(err);
+            callback(null, (rows || []).map(row => ({ ...row, options: JSON.parse(row.options) })));
+        });
+    }
+
+    // Questions previously answered whose spaced-repetition interval has elapsed.
+    // Joins in the parent topic so the review UI can show chapter/book context.
+    getDueReviewQuestions(limit, callback) {
+        this.db.all(`
+            SELECT qq.*, t.title as topic_title, t.module as topic_module, t.category as topic_category
+            FROM quiz_questions qq
+            JOIN topics t ON t.id = qq.topic_id
+            WHERE qq.next_review_at IS NOT NULL AND qq.next_review_at <= ?
+            ORDER BY qq.next_review_at ASC
+            LIMIT ?
+        `, [new Date().toISOString(), limit], (err, rows) => {
+            if (err) return callback(err);
+            callback(null, (rows || []).map(row => ({ ...row, options: JSON.parse(row.options) })));
+        });
+    }
+
+    // Random question pool for a timed mock exam, scoped to a category (e.g. "Books").
+    getRandomQuizQuestions(category, limit, callback) {
+        this.db.all(`
+            SELECT qq.*, t.title as topic_title, t.module as topic_module, t.category as topic_category
+            FROM quiz_questions qq
+            JOIN topics t ON t.id = qq.topic_id
+            WHERE t.category = ?
+            ORDER BY RANDOM()
+            LIMIT ?
+        `, [category, limit], (err, rows) => {
+            if (err) return callback(err);
+            callback(null, (rows || []).map(row => ({ ...row, options: JSON.parse(row.options) })));
+        });
+    }
+
+    // Updates spaced-repetition state for one answered question (simple SM-2-style
+    // backoff): a correct answer doubles the interval (starting at 1 day, capped at
+    // 60), a wrong answer resets it to 1 day so it comes back tomorrow.
+    recordQuizAnswer(questionId, isCorrect, callback) {
+        this.db.get('SELECT interval_days FROM quiz_questions WHERE id = ?', [questionId], (err, row) => {
+            if (err) return callback(err);
+            if (!row) return callback(new Error('Quiz question not found'));
+
+            const prevInterval = row.interval_days || 0;
+            const nextInterval = isCorrect ? Math.min(prevInterval > 0 ? prevInterval * 2 : 1, 60) : 1;
+            const now = new Date();
+            const nextReviewAt = new Date(now.getTime() + nextInterval * 24 * 60 * 60 * 1000).toISOString();
+
+            this.db.run(`
+                UPDATE quiz_questions
+                SET times_seen = times_seen + 1,
+                    times_correct = times_correct + ?,
+                    interval_days = ?,
+                    next_review_at = ?,
+                    last_answered_at = ?
+                WHERE id = ?
+            `, [isCorrect ? 1 : 0, nextInterval, nextReviewAt, now.toISOString(), questionId], callback);
+        });
     }
 }
 
