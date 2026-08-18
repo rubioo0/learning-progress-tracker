@@ -7996,6 +7996,9 @@
         // submit through /api/quiz/submit, so answering anywhere updates the same
         // review schedule.
         let quizState = { mode: null, questions: [], answers: {}, timerInterval: null, timeRemainingSec: 0, topicId: null };
+        // On Render's free tier the server sleeps after ~15 min idle and takes up to a
+        // minute to wake on the next request — without this note that first load looks stuck.
+        const QUIZ_LOADING_HTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading... (if the server has been idle, waking it up can take up to a minute)</p>';
 
         function showQuizModal(title, subtitle) {
             document.getElementById('quiz-modal-title').textContent = title;
@@ -8130,7 +8133,7 @@
 
             quizState = { mode: 'practice', questions: [], answers: {}, timerInterval: null, timeRemainingSec: 0, topicId };
             showQuizModal(topic ? topic.title : 'Quiz', 'Loading...');
-            document.getElementById('quiz-modal-body').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>';
+            document.getElementById('quiz-modal-body').innerHTML = QUIZ_LOADING_HTML;
 
             try {
                 const response = await fetch(`/api/topics/${topicId}/quiz`);
@@ -8187,7 +8190,7 @@
         async function openReviewQueue() {
             quizState = { mode: 'review', questions: [], answers: {}, timerInterval: null, timeRemainingSec: 0, topicId: null };
             showQuizModal('Review Due', 'Loading...');
-            document.getElementById('quiz-modal-body').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>';
+            document.getElementById('quiz-modal-body').innerHTML = QUIZ_LOADING_HTML;
 
             try {
                 const response = await fetch('/api/quiz/review-due?limit=20');
@@ -8224,7 +8227,7 @@
         async function startMockExam() {
             quizState = { mode: 'exam', questions: [], answers: {}, timerInterval: null, timeRemainingSec: 0, topicId: null };
             showQuizModal('Mock Exam', 'Loading...');
-            document.getElementById('quiz-modal-body').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>';
+            document.getElementById('quiz-modal-body').innerHTML = QUIZ_LOADING_HTML;
 
             try {
                 const response = await fetch('/api/quiz/mock-exam?count=40&category=Books');
