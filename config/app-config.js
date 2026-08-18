@@ -41,6 +41,12 @@ module.exports = {
     // Runtime guards
     REQUIRE_PROD_EXTERNAL_SERVICES: parseBoolean(process.env.REQUIRE_PROD_EXTERNAL_SERVICES, false),
 
+    // HTTP Basic Auth gate — the app hosts internal/company topics and personal data,
+    // so the whole site (not just the API) is protected when these are set. Required
+    // in production; if unset locally, auth is skipped for dev convenience.
+    AUTH_USERNAME: process.env.AUTH_USERNAME || '',
+    AUTH_PASSWORD: process.env.AUTH_PASSWORD || '',
+
     // AI model configuration
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
     AI_FILE_PERSISTENCE: parseBoolean(process.env.AI_FILE_PERSISTENCE, !isProduction),

@@ -2,6 +2,7 @@ const express = require('express');
 const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Import custom modules
 const config = require('./config/app-config');
@@ -33,6 +34,9 @@ function validateRuntimeConfig() {
         if (!config.CLOUDINARY.CONFIGURED) {
             missing.push('CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET');
         }
+        if (!config.AUTH_USERNAME || !config.AUTH_PASSWORD) {
+            missing.push('AUTH_USERNAME/AUTH_PASSWORD');
+        }
 
         if (missing.length > 0) {
             throw new Error(`Missing production configuration: ${missing.join(', ')}`);
@@ -44,7 +48,48 @@ function validateRuntimeConfig() {
     console.log(`[Startup] File storage backend: ${fileStorage.getInfo().backend}`);
 }
 
+// Unauthenticated health check for Render's deploy health probe — must stay reachable
+// without credentials, and must be registered before the auth gate below.
+app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok' }));
+
+// Constant-time string comparison (hashes first so differing lengths don't short-circuit)
+function safeCompare(a, b) {
+    const hashA = crypto.createHash('sha256').update(String(a)).digest();
+    const hashB = crypto.createHash('sha256').update(String(b)).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+}
+
+// HTTP Basic Auth gate for the whole app — this instance holds internal company
+// topics and personal data, so everything (static files included) is protected,
+// not just the API. Registered before express.static so nothing slips through.
+function requireBasicAuth(req, res, next) {
+    const { AUTH_USERNAME, AUTH_PASSWORD } = config;
+
+    if (!AUTH_USERNAME || !AUTH_PASSWORD) {
+        if (config.NODE_ENV === 'production') {
+            return res.status(500).send('Server misconfigured: set AUTH_USERNAME and AUTH_PASSWORD.');
+        }
+        return next(); // Local dev convenience when auth isn't configured
+    }
+
+    const header = req.headers.authorization || '';
+    if (header.startsWith('Basic ')) {
+        const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+        const separatorIndex = decoded.indexOf(':');
+        const providedUser = separatorIndex === -1 ? decoded : decoded.slice(0, separatorIndex);
+        const providedPass = separatorIndex === -1 ? '' : decoded.slice(separatorIndex + 1);
+
+        if (safeCompare(providedUser, AUTH_USERNAME) && safeCompare(providedPass, AUTH_PASSWORD)) {
+            return next();
+        }
+    }
+
+    res.set('WWW-Authenticate', 'Basic realm="QA Road", charset="UTF-8"');
+    return res.status(401).send('Authentication required.');
+}
+
 // Middleware
+app.use(requireBasicAuth);
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());

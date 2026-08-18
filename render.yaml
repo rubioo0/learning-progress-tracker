@@ -5,11 +5,16 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /healthz
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_PROVIDER

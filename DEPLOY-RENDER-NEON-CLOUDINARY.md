@@ -35,11 +35,17 @@ Render blueprint is already aligned in render.yaml.
 Set the following environment variables in Render Dashboard:
 
 Required:
+- AUTH_USERNAME
+- AUTH_PASSWORD
 - DATABASE_URL
 - CLOUDINARY_CLOUD_NAME
 - CLOUDINARY_API_KEY
 - CLOUDINARY_API_SECRET
 - GEMINI_API_KEY
+
+Note: AUTH_USERNAME/AUTH_PASSWORD gate the entire site with HTTP Basic Auth (the app
+holds internal company topics and personal data). Pick a real password, not a
+placeholder — Render env vars are the only place it's stored, it's never in git.
 
 Note: when `GEMINI_API_KEY` is set in Render environment variables, the in-app "Save API key" action is intentionally read-only/blocked. Change the key in Render and redeploy.
 
