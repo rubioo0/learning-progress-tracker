@@ -1995,7 +1995,7 @@
 
     <!-- Quiz Player Modal (practice quiz / mock exam / spaced-repetition review — one player, three entry points) -->
     <div id="quiz-modal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm hidden z-[9999] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div id="quiz-modal-panel" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
                 <div>
                     <h3 id="quiz-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Quiz</h3>
@@ -8000,12 +8000,21 @@
         // minute to wake on the next request — without this note that first load looks stuck.
         const QUIZ_LOADING_HTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading... (if the server has been idle, waking it up can take up to a minute)</p>';
 
+        // Swapping in shorter content (e.g. results after a long question list) leaves
+        // the panel scrolled from wherever the user was, clipping the top of the new
+        // content — reset scroll on every content swap, not just on open.
+        function resetQuizModalScroll() {
+            const panel = document.getElementById('quiz-modal-panel');
+            if (panel) panel.scrollTop = 0;
+        }
+
         function showQuizModal(title, subtitle) {
             document.getElementById('quiz-modal-title').textContent = title;
             document.getElementById('quiz-modal-subtitle').textContent = subtitle || '';
             document.getElementById('quiz-timer').classList.add('hidden');
             document.getElementById('quiz-timer').className = 'hidden text-sm font-mono font-semibold text-orange-600 dark:text-orange-400';
             document.getElementById('quiz-modal').classList.remove('hidden');
+            resetQuizModalScroll();
         }
 
         function closeQuizModal() {
@@ -8039,6 +8048,7 @@
                     Submit ${quizState.mode === 'exam' ? 'Exam' : 'Answers'}
                 </button>
             `;
+            resetQuizModalScroll();
         }
 
         async function submitQuiz() {
@@ -8125,6 +8135,7 @@
                     Close
                 </button>
             `;
+            resetQuizModalScroll();
         }
 
         // Practice quiz for a single topic (from the ✅ button on any topic card)
