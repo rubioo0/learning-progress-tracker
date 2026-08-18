@@ -1,0 +1,315 @@
+{
+  "meta": {
+    "id": "istqb-ctfl-v4",
+    "title": "ISTQB CTFL v4.0 — Foundation Level Syllabus",
+    "author": "Companion: Lucjan Stapp, Adam Roman & Michael Pilaeten (Springer Self-Study Guide)",
+    "edition": "Syllabus v4.0",
+    "description": "One topic per official ISTQB Certified Tester Foundation Level (CTFL) syllabus v4.0 section, with self-check prompts and AI-generated exam-prep notes. Section descriptions and self-check items are written from the public ISTQB syllabus outline, not copied from any book — use it alongside the Springer self-study guide (or any CTFL v4.0 book) as your primary reading."
+  },
+  "topics": [
+    {
+      "title": "1.1 What is Testing?",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 1: Fundamentals of Testing",
+      "description": "Defines what software testing actually is, distinguishes it from debugging, and introduces the common objectives of a test activity (finding defects, gaining confidence, preventing defects, providing information for decisions).",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '1.1 What is Testing?' section there, then use 'Generate AI Content' below for exam-style notes and practice questions. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 1,
+      "questions": [
+        { "text": "Can you define 'testing' in your own words and explain how it differs from 'debugging'?", "answered": false },
+        { "text": "Can you list the typical objectives of testing (defect detection, confidence building, defect prevention, decision support)?", "answered": false },
+        { "text": "Can you explain how testing objectives differ depending on the context (e.g. component testing vs acceptance testing)?", "answered": false }
+      ]
+    },
+    {
+      "title": "1.2 Why is Testing Necessary?",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 1: Fundamentals of Testing",
+      "description": "Covers testing's contribution to quality and to building confidence, the relationship between errors/defects/failures/root causes, and the concept of 'enough' testing given risk and constraints.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '1.2 Why is Testing Necessary?' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 2,
+      "questions": [
+        { "text": "Can you explain the difference between an error (mistake), a defect (fault/bug), and a failure?", "answered": false },
+        { "text": "Can you describe how testing supports both quality assurance and quality control?", "answered": false },
+        { "text": "Can you explain what determines 'how much testing is enough' for a given project?", "answered": false }
+      ]
+    },
+    {
+      "title": "1.3 Testing Principles",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 1: Fundamentals of Testing",
+      "description": "The seven well-known testing principles: testing shows presence of defects, exhaustive testing is impossible, early testing saves time/money, defect clustering, pesticide paradox, testing is context dependent, and the absence-of-errors fallacy.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '1.3 Testing Principles' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact wording/order of the 7 principles against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 3,
+      "questions": [
+        { "text": "Can you list and briefly explain all seven testing principles from memory?", "answered": false },
+        { "text": "Can you give a real (or realistic) example for the 'pesticide paradox' and the 'defect clustering' principle?", "answered": false },
+        { "text": "Can you explain why 'testing shows presence of defects, not their absence' matters for how you report test results?", "answered": false }
+      ]
+    },
+    {
+      "title": "1.4 Test Process",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 1: Fundamentals of Testing",
+      "description": "The test process in context: test planning, monitoring & control, analysis, design, implementation, execution, and completion — plus the key test work products each activity produces and how traceability links them to test basis items.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '1.4 Test Process' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 4,
+      "questions": [
+        { "text": "Can you list the test process activities in order and describe what each one produces?", "answered": false },
+        { "text": "Can you explain why these activities are often iterative/overlapping rather than strictly sequential?", "answered": false },
+        { "text": "Can you explain what traceability is and why it matters between test basis, test conditions, and test cases?", "answered": false }
+      ]
+    },
+    {
+      "title": "1.5 The Psychology of Testing",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 1: Fundamentals of Testing",
+      "description": "Human factors in testing: the mindset difference between testers and developers, confirmation bias, and communicating defects/test results constructively.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '1.5 The Psychology of Testing' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 5,
+      "questions": [
+        { "text": "Can you explain why a 'tester's mindset' (curious, critical, risk-aware) differs from a developer's mindset, and why both are valuable?", "answered": false },
+        { "text": "Can you describe how to phrase a defect report so it stays factual and doesn't feel like a personal attack?", "answered": false }
+      ]
+    },
+    {
+      "title": "2.1 Testing in the Context of a Software Development Lifecycle",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 2: Testing Throughout the SDLC",
+      "description": "How testing fits into different development models (sequential/V-model style vs iterative/incremental vs Agile), the importance of good test-ware, and how organizational context (e.g. DevOps) shapes testing.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '2.1' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 6,
+      "questions": [
+        { "text": "Can you explain how test levels map onto a sequential/V-model development approach?", "answered": false },
+        { "text": "Can you describe how testing activities change in an iterative/incremental or Agile context?", "answered": false },
+        { "text": "Can you explain what 'good test-ware' looks like (maintainable, traceable, reusable) and why it matters long-term?", "answered": false }
+      ]
+    },
+    {
+      "title": "2.2 Test Levels and Test Types",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 2: Testing Throughout the SDLC",
+      "description": "The four classic test levels (component, integration, system, acceptance) and the four test types (functional, non-functional, white-box, and change-related/confirmation & regression testing), including how they relate to each other.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '2.2' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 7,
+      "questions": [
+        { "text": "Can you name all four test levels and describe the typical objective and typical owner of each?", "answered": false },
+        { "text": "Can you distinguish functional testing from non-functional testing, with an example of each?", "answered": false },
+        { "text": "Can you explain the difference between confirmation (re-)testing and regression testing?", "answered": false },
+        { "text": "Can you describe what acceptance testing typically checks for, and who is usually involved?", "answered": false }
+      ]
+    },
+    {
+      "title": "2.3 Maintenance Testing",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 2: Testing Throughout the SDLC",
+      "description": "Testing that happens after a system is in production, triggered by modification, migration, or retirement — and how impact analysis is used to scope what needs to be re-tested.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '2.3 Maintenance Testing' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 8,
+      "questions": [
+        { "text": "Can you list the triggers for maintenance testing (modification, migration, retirement)?", "answered": false },
+        { "text": "Can you explain what impact analysis is and how it decides the scope of regression testing after a change?", "answered": false }
+      ]
+    },
+    {
+      "title": "3.1 Static Testing Basics",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 3: Static Testing",
+      "description": "What static testing is, which work products it can be applied to (code and non-code artifacts like requirements or user stories), and its value versus dynamic testing.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '3.1 Static Testing Basics' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 9,
+      "questions": [
+        { "text": "Can you explain the difference between static and dynamic testing, with an example of each?", "answered": false },
+        { "text": "Can you list work products that static testing can be applied to besides source code?", "answered": false },
+        { "text": "Can you explain why finding a defect via static testing is typically cheaper than finding it via dynamic testing later?", "answered": false }
+      ]
+    },
+    {
+      "title": "3.2 Feedback and Review Process",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 3: Static Testing",
+      "description": "The formal review process (planning, kick-off, individual review, review meeting, rework, follow-up), the roles involved (author, moderator, reviewers, scribe), and review types from informal to formal inspection.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '3.2 Feedback and Review Process' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 10,
+      "questions": [
+        { "text": "Can you list the phases of a formal review process in order?", "answered": false },
+        { "text": "Can you describe each review role (author, moderator/facilitator, reviewer, scribe) and its responsibility?", "answered": false },
+        { "text": "Can you rank the review types (informal, walkthrough, technical review, inspection) from least to most formal and explain what changes between them?", "answered": false }
+      ]
+    },
+    {
+      "title": "4.1 Test Techniques Overview",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 4: Test Analysis and Design",
+      "description": "The three categories of test technique — black-box, white-box, and experience-based — and how choosing between them relates to what you're trying to cover and what you know about the system internals.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '4.1' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 11,
+      "questions": [
+        { "text": "Can you explain the difference between black-box, white-box, and experience-based techniques?", "answered": false },
+        { "text": "Can you describe what 'coverage' means in testing, and why 100% coverage of any single measure isn't the same as complete testing?", "answered": false }
+      ]
+    },
+    {
+      "title": "4.2 Black-Box Test Techniques",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 4: Test Analysis and Design",
+      "description": "Equivalence partitioning, boundary value analysis, decision table testing, state transition testing, and black-box variants like use case testing and (for CTFL, briefly) domain testing — how to derive test cases without looking at the code.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '4.2' section there — this is one of the most exam-heavy sections, expect several worked examples in the book. Then use 'Generate AI Content' below for extra practice questions. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 12,
+      "questions": [
+        { "text": "Given a simple input range, can you derive equivalence partitions and pick representative test values?", "answered": false },
+        { "text": "Can you apply boundary value analysis to a range and identify the correct boundary values (including off-by-one edge cases)?", "answered": false },
+        { "text": "Given a small set of conditions and actions, can you build a decision table and derive test cases from it?", "answered": false },
+        { "text": "Given a simple state diagram, can you derive test cases covering states, transitions, and invalid transitions?", "answered": false }
+      ]
+    },
+    {
+      "title": "4.3 White-Box Test Techniques",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 4: Test Analysis and Design",
+      "description": "Statement testing/coverage and branch/decision testing/coverage — deriving test cases from the code's control flow and calculating coverage percentages.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '4.3' section there and practice the coverage-calculation examples by hand. Then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 13,
+      "questions": [
+        { "text": "Given simple pseudocode, can you calculate statement coverage for a given set of test cases?", "answered": false },
+        { "text": "Given simple pseudocode with an if/else, can you calculate branch/decision coverage and identify which test cases are missing?", "answered": false },
+        { "text": "Can you explain why 100% branch coverage implies 100% statement coverage but not vice versa?", "answered": false }
+      ]
+    },
+    {
+      "title": "4.4 Experience-Based Test Techniques",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 4: Test Analysis and Design",
+      "description": "Error guessing, exploratory testing (session-based approaches, charters), and checklist-based testing — techniques that rely on tester skill, intuition, and experience rather than a formal model.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '4.4' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 14,
+      "questions": [
+        { "text": "Can you explain error guessing and give an example of a defect it's likely to catch that formal techniques might miss?", "answered": false },
+        { "text": "Can you describe exploratory testing and what a 'test charter' defines in a session-based approach?", "answered": false },
+        { "text": "Can you explain when checklist-based testing is a good fit versus a risk (e.g. becoming stale)?", "answered": false }
+      ]
+    },
+    {
+      "title": "4.5 Collaboration-Based Test Approaches",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 4: Test Analysis and Design",
+      "description": "Collaborative user story writing (INVEST criteria), acceptance criteria, and acceptance test-driven development (ATDD) — techniques that build testability and shared understanding in from the start.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '4.5' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 15,
+      "questions": [
+        { "text": "Can you list the INVEST criteria for a good user story and explain what each letter means?", "answered": false },
+        { "text": "Can you explain what acceptance criteria are for and how they differ from the story description itself?", "answered": false },
+        { "text": "Can you describe the ATDD workflow (discuss → distill → develop → demo) and why tests are written before code?", "answered": false }
+      ]
+    },
+    {
+      "title": "5.1 Test Planning",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 5: Managing the Test Activities",
+      "description": "Purpose and content of a test plan, test strategy vs test approach, entry/exit criteria, and estimating test effort.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '5.1 Test Planning' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 16,
+      "questions": [
+        { "text": "Can you list what a test plan typically documents (scope, approach, resources, schedule, risks)?", "answered": false },
+        { "text": "Can you explain the difference between entry criteria and exit criteria, with an example of each?", "answered": false },
+        { "text": "Can you name factors that influence test effort estimation?", "answered": false }
+      ]
+    },
+    {
+      "title": "5.2 Risk Management",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 5: Managing the Test Activities",
+      "description": "Product risk vs project risk, risk likelihood and impact, and how risk level drives the extent and priority of test effort (risk-based testing).",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '5.2 Risk Management' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 17,
+      "questions": [
+        { "text": "Can you distinguish a product risk from a project risk, with an example of each?", "answered": false },
+        { "text": "Can you explain how likelihood and impact combine to determine risk level, and how that drives test prioritization?", "answered": false }
+      ]
+    },
+    {
+      "title": "5.3 Test Monitoring, Test Control and Test Completion",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 5: Managing the Test Activities",
+      "description": "Metrics used to monitor testing progress, corrective control actions, and what happens at test completion (test summary reports, lessons learned).",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '5.3' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 18,
+      "questions": [
+        { "text": "Can you name typical test metrics (e.g. defects found/fixed, coverage achieved, tests passed/failed) and what each tells you?", "answered": false },
+        { "text": "Can you give an example of a test control action taken in response to a metric (e.g. reprioritizing tests when time is short)?", "answered": false },
+        { "text": "Can you list what a test summary report typically includes?", "answered": false }
+      ]
+    },
+    {
+      "title": "5.4 Configuration Management",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 5: Managing the Test Activities",
+      "description": "How configuration management supports testing — version control of test-ware and the software under test, and traceability between versions.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '5.4 Configuration Management' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 19,
+      "questions": [
+        { "text": "Can you explain why testers need to know exactly which version of the software (and test-ware) they tested?", "answered": false },
+        { "text": "Can you describe what configuration management provides to support this (versioning, baselines, traceability)?", "answered": false }
+      ]
+    },
+    {
+      "title": "5.5 Defect Management",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 5: Managing the Test Activities",
+      "description": "The defect report lifecycle and the typical fields a good defect report contains (steps to reproduce, expected vs actual result, severity, priority, environment).",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '5.5 Defect Management' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 20,
+      "questions": [
+        { "text": "Can you list the fields a good defect report should contain?", "answered": false },
+        { "text": "Can you explain the difference between severity and priority, with an example where they diverge (high severity, low priority or vice versa)?", "answered": false },
+        { "text": "Can you describe the typical lifecycle/states a defect report goes through?", "answered": false }
+      ]
+    },
+    {
+      "title": "6.1 Tool Support for Testing",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 6: Test Tools",
+      "description": "Categories of test tools (management, static testing, test design, execution, performance, monitoring, etc.) and considerations for selecting/introducing a tool into an organization.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '6.1 Tool Support for Testing' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 21,
+      "questions": [
+        { "text": "Can you name several categories of test tools and give an example tool (or tool type) for each?", "answered": false },
+        { "text": "Can you list factors to weigh before introducing a new test tool into a team (cost, learning curve, integration, maintenance)?", "answered": false }
+      ]
+    },
+    {
+      "title": "6.2 Benefits and Risks of Test Automation",
+      "category": "Books",
+      "module": "ISTQB CTFL v4.0 — Chapter 6: Test Tools",
+      "description": "What test execution automation genuinely improves (repeatability, speed, objective comparison) versus common pitfalls (over-automating unstable UIs, false confidence, high maintenance cost) and the case for keeping some manual/exploratory testing.",
+      "notes": "📘 Study companion: ISTQB® CTFL – A Self-Study Guide (Syllabus v4.0) by Stapp, Roman & Pilaeten (Springer). Read the '6.2' section there, then use 'Generate AI Content' below. Self-check items are study prompts aligned to the public ISTQB syllabus outline — verify exact LO codes/K-levels against the current syllabus PDF at istqb.org.",
+      "status": "not-started",
+      "order_index": 22,
+      "questions": [
+        { "text": "Can you list realistic benefits of test automation (repeatability, speed, freeing testers for exploratory work)?", "answered": false },
+        { "text": "Can you list realistic risks/limitations of test automation (maintenance cost, flaky tests, false sense of security)?", "answered": false },
+        { "text": "Can you explain why not everything should be automated, and how you'd decide what to automate first?", "answered": false }
+      ]
+    }
+  ]
+}

@@ -1831,10 +1831,15 @@
             </div>
             
             <div class="flex flex-wrap gap-4 mb-4">
-                <button onclick="loadSampleData()" 
+                <button onclick="loadSampleData()"
                         class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
                     <i data-lucide="database" class="w-4 h-4 inline mr-2"></i>
                     Load Sample Curriculum
+                </button>
+                <button onclick="openBooksModal()"
+                        class="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-2"></i>
+                    Import Study Book
                 </button>
                 <label class="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer">
                     <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
@@ -1952,6 +1957,29 @@
                     Cancel
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Study Books Modal -->
+    <div id="books-modal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm hidden z-[9999] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import a Study Book</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Adds a book's syllabus as topics under the "Books" category — self-check items and AI-generated deep dives included.</p>
+                </div>
+                <button onclick="closeBooksModal()" class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div id="books-modal-list" class="space-y-3">
+                <!-- Book packs loaded here -->
+            </div>
+
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                Want another book in this list? Drop a <code>{ meta, topics }</code> JSON file into <code>data/books/</code> — see <code>data/books/README.md</code>. No code changes needed.
+            </p>
         </div>
     </div>
 
@@ -2911,7 +2939,16 @@
                 const mainFilter = document.getElementById('main-category-filter');
                 mainFilter.innerHTML = '<option value="">All Topics</option>';
                 
-                ['Manual Testing', 'Software Engineering in Test', 'Test Automation'].forEach(category => {
+                // Known categories first (stable ordering), then any others (e.g. "Books")
+                // discovered from the data itself — new categories need no code changes here.
+                const knownOrder = ['Manual Testing', 'Software Engineering in Test', 'Test Automation'];
+                const allCategories = Object.keys(topicsMetadata.stats || {});
+                const orderedCategories = [
+                    ...knownOrder.filter(c => allCategories.includes(c)),
+                    ...allCategories.filter(c => !knownOrder.includes(c)).sort()
+                ];
+
+                orderedCategories.forEach(category => {
                     const stats = topicsMetadata.stats[category];
                     if (stats) {
                         const option = document.createElement('option');
@@ -7831,6 +7868,82 @@
             } catch (error) {
                 console.error('Error loading sample data:', error);
                 showErrorMessage('Error loading sample data.');
+            }
+        }
+
+        async function openBooksModal() {
+            const modal = document.getElementById('books-modal');
+            const list = document.getElementById('books-modal-list');
+            list.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading available books...</p>';
+            modal.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/books');
+                const packs = await response.json();
+
+                if (!response.ok) {
+                    list.innerHTML = `<p class="text-sm text-red-600 dark:text-red-400">${packs.error || 'Error loading books.'}</p>`;
+                    return;
+                }
+
+                if (packs.length === 0) {
+                    list.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No study books available yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = packs.map(pack => `
+                    <div class="flex items-center justify-between gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div class="min-w-0">
+                            <h4 class="font-medium text-gray-900 dark:text-white truncate">${pack.title}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${pack.author ? pack.author + ' &middot; ' : ''}${pack.topicCount} topics</p>
+                        </div>
+                        <button onclick="importBookPack('${pack.id}')" id="import-book-btn-${pack.id}"
+                                class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                            Import
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading book packs:', error);
+                list.innerHTML = '<p class="text-sm text-red-600 dark:text-red-400">Error loading books.</p>';
+            }
+        }
+
+        function closeBooksModal() {
+            document.getElementById('books-modal').classList.add('hidden');
+        }
+
+        async function importBookPack(bookId) {
+            const btn = document.getElementById(`import-book-btn-${bookId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Importing...';
+            }
+
+            try {
+                const response = await fetch(`/api/books/${bookId}/import`, { method: 'POST' });
+                const result = await response.json();
+
+                if (response.ok) {
+                    showSuccessMessage(result.message + (result.imported ? ` (${result.imported} topics added)` : ''));
+                    closeBooksModal();
+                    loadTopicsMetadata();
+                    loadTopics();
+                    loadProgress();
+                } else {
+                    showErrorMessage('Error importing book: ' + result.error);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Import';
+                    }
+                }
+            } catch (error) {
+                console.error('Error importing book:', error);
+                showErrorMessage('Error importing book.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Import';
+                }
             }
         }
 

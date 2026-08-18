@@ -303,6 +303,10 @@ class GeminiAIService {
      * Personalized for Middle QA/AQA targeting US market senior positions.
      */
     buildPrompt(topic) {
+        if (topic.category === 'Books') {
+            return this.buildBookStudyPrompt(topic);
+        }
+
         const ctx = PROFESSIONAL_CONTEXT;
         const parsedDesc = this._parseDescription(topic.description || '');
         
@@ -376,6 +380,45 @@ ${artifactsSection ? `\n## EXPECTED ARTIFACTS/OUTCOMES\n${artifactsSection}` : '
 - Reference real tools/libraries by name with version-specific details where relevant
 
 Use Markdown formatting throughout: headers (##, ###), code blocks with language tags (\`\`\`csharp, \`\`\`python, \`\`\`mermaid), tables, bullet points, blockquotes for important notes, and bold/italic for emphasis.`;
+    }
+
+    /**
+     * Build the prompt for topics that come from a study book/certification syllabus
+     * (topic.category === 'Books'). Unlike buildPrompt() above — which targets hands-on
+     * production engineering — this targets exam prep: definitions, terminology precision,
+     * and practice questions, since that's what a candidate actually needs from a chapter.
+     */
+    buildBookStudyPrompt(topic) {
+        const moduleContext = topic.module ? `\nBook / Chapter: ${topic.module}` : '';
+        const notesContext = topic.notes ? `\n\n## STUDY SOURCE\n${topic.notes}` : '';
+        const selfCheckItems = Array.isArray(topic.questions) && topic.questions.length > 0
+            ? topic.questions.map(q => `- ${typeof q === 'string' ? q : q.text}`).join('\n')
+            : '';
+
+        return `You are an experienced certification trainer writing exam-prep study notes for a candidate preparing for a professional certification exam (e.g. ISTQB). The candidate already owns the official book/syllabus for this section — your job is to distill and reinforce it, not replace it.
+
+## SYLLABUS SECTION: ${topic.title}
+${moduleContext}
+${notesContext}
+
+${selfCheckItems ? `## SELF-CHECK ITEMS TO COVER\n${selfCheckItems}\n` : ''}
+## WRITING GUIDELINES
+
+### Tone
+- Clear, precise, exam-focused — like a trainer's study notes, not marketing copy
+- Use the exact terminology the certification body uses; call out terms that are easy to confuse (e.g. similar-sounding concepts, common trick-question pairs)
+- Do not fabricate specific official Learning Objective codes or K-levels (K1–K4) if you are not certain of the exact current wording — describe the objective in plain language instead, and note that the reader should cross-check exact LO codes against the official syllabus PDF
+
+### Structure (use all that apply)
+1. **TL;DR** — 2-3 sentence summary of what this section covers and why it matters for the exam
+2. **Key Concepts** — clear definitions of every important term in this section
+3. **Deep Dive** — explain the concept thoroughly, with realistic examples
+4. **Commonly Confused With** — terms/concepts candidates often mix up in this area, and how to tell them apart
+5. **Common Exam Traps** — the kinds of distractor answers exams typically use for this topic, and how to spot them
+6. **Practice Questions** — 4-6 exam-style multiple-choice questions (4 options each) covering this section, with the correct answer and a one-line rationale for each — clearly mark which option is correct
+7. **Quick Recap** — a short bullet-point summary for last-minute review
+
+Use Markdown formatting throughout: headers (##, ###), tables where useful for comparisons, bullet points, and bold for key terms.`;
     }
 
     /**

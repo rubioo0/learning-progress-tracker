@@ -1100,6 +1100,82 @@ app.post('/api/sample-data', (req, res) => {
     }
 });
 
+// Book study packs — a generic way to add any book/syllabus as importable topics.
+// Each file in data/books/*.json is a { meta, topics } pack; dropping in a new file
+// is all that's needed to make another book available, no code changes required.
+app.get('/api/books', (req, res) => {
+    const booksDir = path.join(__dirname, 'data', 'books');
+    try {
+        if (!fs.existsSync(booksDir)) return res.json([]);
+
+        const files = fs.readdirSync(booksDir).filter(f => f.endsWith('.json'));
+        const packs = files.map(f => {
+            const id = path.basename(f, '.json');
+            try {
+                const pack = JSON.parse(fs.readFileSync(path.join(booksDir, f), 'utf8'));
+                return {
+                    id,
+                    title: pack.meta?.title || id,
+                    author: pack.meta?.author || null,
+                    edition: pack.meta?.edition || null,
+                    topicCount: Array.isArray(pack.topics) ? pack.topics.length : 0
+                };
+            } catch (parseError) {
+                return { id, title: id, error: 'Invalid pack file: ' + parseError.message, topicCount: 0 };
+            }
+        });
+        res.json(packs);
+    } catch (error) {
+        res.status(500).json({ error: 'Error listing book packs: ' + error.message });
+    }
+});
+
+app.post('/api/books/:id/import', (req, res) => {
+    const bookId = req.params.id;
+    const filePath = path.join(__dirname, 'data', 'books', `${bookId}.json`);
+
+    if (!bookId.match(/^[a-zA-Z0-9_-]+$/) || !fs.existsSync(filePath)) {
+        return res.status(404).json({ error: `Book pack "${bookId}" not found` });
+    }
+
+    let pack;
+    try {
+        pack = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (error) {
+        return res.status(500).json({ error: 'Error reading book pack: ' + error.message });
+    }
+
+    const topics = Array.isArray(pack.topics) ? pack.topics : [];
+    if (topics.length === 0) {
+        return res.status(400).json({ error: 'Book pack has no topics to import' });
+    }
+
+    const titles = topics.map(t => t.title);
+    dbService.getExistingTopicTitles(titles, (err, existingRows) => {
+        if (err) return helpers.handleDatabaseError(res, err);
+
+        const existingTitles = new Set((existingRows || []).map(r => r.title));
+        const newTopics = topics.filter(t => !existingTitles.has(t.title));
+
+        if (newTopics.length === 0) {
+            return res.json({
+                message: `"${pack.meta?.title || bookId}" is already imported`,
+                imported: 0,
+                skipped: topics.length
+            });
+        }
+
+        dbService.bulkInsertTopicsFull(newTopics, (err) => {
+            if (err) return helpers.handleDatabaseError(res, err);
+            res.json({
+                message: `Imported "${pack.meta?.title || bookId}"`,
+                imported: newTopics.length,
+                skipped: topics.length - newTopics.length
+            });
+        });
+    });
+});
+
 // Clear all curriculum data
 app.delete('/api/clear-curriculum', (req, res) => {
     dbService.clearAllData((err) => {

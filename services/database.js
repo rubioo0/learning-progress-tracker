@@ -356,26 +356,23 @@ class DatabaseService {
 
     getTopicsMetadata(callback) {
         this.db.all(`
-            SELECT DISTINCT category 
-            FROM topics 
+            SELECT DISTINCT category
+            FROM topics
             ORDER BY category
         `, (err, rows) => {
             if (err) return callback(err);
 
-            // Group categories into main groups
-            const mainCategories = {
-                'Manual Testing': [],
-                'Software Engineering in Test': [],
-                'Test Automation': {}
-            };
+            // Group categories into main groups. "Test Automation" gets a nested
+            // language breakdown (parsed from "Test Automation - <language> - <type>");
+            // every other category (including new ones like "Books") becomes its own
+            // top-level group automatically, so adding a category doesn't require code changes.
+            const mainCategories = {};
 
             rows.forEach(row => {
                 const cat = row.category;
-                if (cat === 'Manual Testing') {
-                    mainCategories['Manual Testing'].push(cat);
-                } else if (cat === 'Software Engineering in Test') {
-                    mainCategories['Software Engineering in Test'].push(cat);
-                } else if (cat.startsWith('Test Automation')) {
+                if (!cat) return;
+                if (cat.startsWith('Test Automation')) {
+                    if (!mainCategories['Test Automation']) mainCategories['Test Automation'] = {};
                     // Parse: "Test Automation - language - type"
                     const parts = cat.split(' - ');
                     if (parts.length >= 2) {
@@ -385,17 +382,18 @@ class DatabaseService {
                         }
                         mainCategories['Test Automation'][language].push(cat);
                     }
+                } else {
+                    if (!mainCategories[cat]) mainCategories[cat] = [];
+                    mainCategories[cat].push(cat);
                 }
             });
 
             // Get counts for main groups
             this.db.all(`
-                SELECT 
-                    CASE 
-                        WHEN category = 'Manual Testing' THEN 'Manual Testing'
-                        WHEN category = 'Software Engineering in Test' THEN 'Software Engineering in Test'
+                SELECT
+                    CASE
                         WHEN category LIKE 'Test Automation%' THEN 'Test Automation'
-                        ELSE 'Other'
+                        ELSE category
                     END as main_category,
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
@@ -520,6 +518,39 @@ class DatabaseService {
         });
 
         stmt.finalize(callback);
+    }
+
+    // Like bulkInsertTopics, but also carries status/notes/questions — used by the
+    // generic book-pack importer (see /api/books/:id/import) so seeded content can
+    // ship with a pre-filled self-check checklist and study notes per topic.
+    bulkInsertTopicsFull(topics, callback) {
+        const stmt = this.db.prepare(`
+            INSERT INTO topics (title, description, category, module, status, notes, questions, order_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        topics.forEach((topic, index) => {
+            stmt.run([
+                topic.title,
+                topic.description || '',
+                topic.category || '',
+                topic.module || '',
+                topic.status || 'not-started',
+                topic.notes || '',
+                topic.questions ? JSON.stringify(topic.questions) : null,
+                topic.order_index || index + 1
+            ]);
+        });
+
+        stmt.finalize(callback);
+    }
+
+    // Used to make book-pack imports idempotent: pass candidate titles, get back
+    // which ones already exist so the caller can skip re-inserting them.
+    getExistingTopicTitles(titles, callback) {
+        if (!titles || titles.length === 0) return callback(null, []);
+        const placeholders = titles.map(() => '?').join(',');
+        this.db.all(`SELECT title FROM topics WHERE title IN (${placeholders})`, titles, callback);
     }
 
     // Get a single topic by ID with questions
