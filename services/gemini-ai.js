@@ -462,7 +462,10 @@ Respond with ONLY valid JSON, no markdown fences, no commentary, matching exactl
         const generated = await this._generateWithFallback(
             prompt,
             {
-                maxOutputTokens: 3072,
+                // 6 questions x (question + 4 options + explanation) can run long with a
+                // verbose model — generous headroom avoids truncating mid-object. Even so,
+                // _salvageQuizQuestions() below is the real safety net if this isn't enough.
+                maxOutputTokens: 6144,
                 temperature: 0.7,
                 responseMimeType: 'application/json'
             },
@@ -481,7 +484,14 @@ Respond with ONLY valid JSON, no markdown fences, no commentary, matching exactl
             const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
             parsed = JSON.parse(cleaned);
         } catch (parseError) {
-            throw new Error('Gemini returned malformed quiz JSON: ' + parseError.message);
+            // Output got cut off before the JSON closed (hit the token cap mid-object).
+            // Salvage whichever questions are already complete instead of failing outright.
+            const salvaged = this._salvageQuizQuestions(text);
+            if (salvaged.length === 0) {
+                throw new Error('Gemini returned malformed quiz JSON: ' + parseError.message);
+            }
+            console.warn(`[Gemini:quiz] Response JSON was truncated; salvaged ${salvaged.length} complete question(s).`);
+            parsed = { questions: salvaged };
         }
 
         const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
@@ -502,6 +512,50 @@ Respond with ONLY valid JSON, no markdown fences, no commentary, matching exactl
             fallbackUsed: generated.fallbackUsed,
             generatedAt: new Date().toISOString()
         };
+    }
+
+    // Best-effort recovery for a quiz response that got cut off mid-JSON (hit the
+    // token cap before closing). Scans past the "questions":[ array opener and pulls
+    // out every complete {...} object it finds, string-aware so braces inside question
+    // text don't throw off the depth count; the trailing incomplete object (if any) is
+    // silently dropped rather than causing the whole quiz generation to fail.
+    _salvageQuizQuestions(rawText) {
+        const questionsKeyIndex = rawText.indexOf('"questions"');
+        const arrayStart = rawText.indexOf('[', questionsKeyIndex === -1 ? 0 : questionsKeyIndex);
+        if (arrayStart === -1) return [];
+
+        const arrayText = rawText.slice(arrayStart + 1);
+        const objects = [];
+        let depth = 0;
+        let objectStart = -1;
+        let inString = false;
+        let escapeNext = false;
+
+        for (let i = 0; i < arrayText.length; i++) {
+            const ch = arrayText[i];
+
+            if (escapeNext) { escapeNext = false; continue; }
+            if (ch === '\\' && inString) { escapeNext = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+
+            if (ch === '{') {
+                if (depth === 0) objectStart = i;
+                depth++;
+            } else if (ch === '}') {
+                depth--;
+                if (depth === 0 && objectStart !== -1) {
+                    try {
+                        objects.push(JSON.parse(arrayText.slice(objectStart, i + 1)));
+                    } catch (e) {
+                        // Malformed even standalone — skip it
+                    }
+                    objectStart = -1;
+                }
+            }
+        }
+
+        return objects;
     }
 
     /**
